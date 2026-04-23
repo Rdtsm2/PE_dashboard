@@ -1,0 +1,2189 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ValuScope — P/E Ratio Dashboard</title>
+  <meta name="description" content="Interactive Price-to-Earnings dashboard tracking trailing and forward P/E ratios for global banks, fintechs, and telecoms." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── DESIGN TOKENS ─────────────────────────────────────────────────── */
+    :root {
+      --font-body: 'Inter', 'Helvetica Neue', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+      --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+      --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+      --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+      --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
+      --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem;
+      --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem;
+      --radius-sm: 0.375rem; --radius-md: 0.5rem; --radius-lg: 0.75rem;
+      --transition: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    :root, [data-theme="dark"] {
+      --color-bg: #0f1117;
+      --color-surface: #161b22;
+      --color-surface-2: #1c2128;
+      --color-surface-3: #21262d;
+      --color-border: #30363d;
+      --color-divider: #21262d;
+      --color-text: #e6edf3;
+      --color-text-muted: #8b949e;
+      --color-text-faint: #484f58;
+      --color-accent: #388bfd;
+      --color-accent-hover: #58a6ff;
+      --color-accent-dim: rgba(56,139,253,0.15);
+      --color-green: #3fb950;
+      --color-green-dim: rgba(63,185,80,0.15);
+      --color-red: #f85149;
+      --color-red-dim: rgba(248,81,73,0.15);
+      --color-yellow: #d29922;
+      --color-yellow-dim: rgba(210,153,34,0.15);
+      --color-purple: #a371f7;
+      --color-purple-dim: rgba(163,113,247,0.15);
+      --color-orange: #f0883e;
+      --color-orange-dim: rgba(240,136,62,0.15);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    [data-theme="light"] {
+      --color-bg: #f0f2f5;
+      --color-surface: #ffffff;
+      --color-surface-2: #f6f8fa;
+      --color-surface-3: #eaeef2;
+      --color-border: #d0d7de;
+      --color-divider: #eaeef2;
+      --color-text: #1f2328;
+      --color-text-muted: #59636e;
+      --color-text-faint: #9198a1;
+      --color-accent: #0969da;
+      --color-accent-hover: #0550ae;
+      --color-accent-dim: rgba(9,105,218,0.1);
+      --color-green: #1a7f37;
+      --color-green-dim: rgba(26,127,55,0.1);
+      --color-red: #cf222e;
+      --color-red-dim: rgba(207,34,46,0.1);
+      --color-yellow: #9a6700;
+      --color-yellow-dim: rgba(154,103,0,0.1);
+      --color-purple: #6e40c9;
+      --color-purple-dim: rgba(110,64,201,0.1);
+      --color-orange: #bc4c00;
+      --color-orange-dim: rgba(188,76,0,0.1);
+      --shadow-sm: 0 1px 3px rgba(31,35,40,0.12);
+      --shadow-md: 0 4px 16px rgba(31,35,40,0.12);
+    }
+
+    /* ── BASE ──────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    body {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-text);
+      background: var(--color-bg);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100dvh;
+    }
+
+    /* ── HEADER ────────────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-3) var(--space-6);
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      position: sticky; top: 0; z-index: 100;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+    .header-left { display: flex; align-items: center; gap: var(--space-3); }
+    .logo {
+      display: flex; align-items: center; gap: var(--space-2);
+      text-decoration: none; color: var(--color-text);
+    }
+    .logo-mark { width: 28px; height: 28px; flex-shrink: 0; }
+    .logo-text { font-size: var(--text-sm); font-weight: 700; letter-spacing: -0.02em; }
+    .logo-sub { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 1px; }
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px var(--space-2);
+      background: var(--color-accent-dim);
+      color: var(--color-accent);
+      border: 1px solid var(--color-accent);
+      border-radius: var(--radius-full, 9999px);
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+    }
+    .header-right { display: flex; align-items: center; gap: var(--space-3); }
+    .theme-btn {
+      background: none; border: 1px solid var(--color-border);
+      border-radius: var(--radius-md); padding: var(--space-2);
+      color: var(--color-text-muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: color var(--transition), border-color var(--transition), background var(--transition);
+    }
+    .theme-btn:hover { color: var(--color-text); border-color: var(--color-text-muted); }
+    .as-of { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+    /* ── MAIN LAYOUT ───────────────────────────────────────────────────── */
+    .main { overflow-y: auto; overscroll-behavior: contain; }
+    .content { padding: var(--space-6); max-width: 1600px; margin: 0 auto; }
+
+    /* ── SECTOR TABS ───────────────────────────────────────────────────── */
+    .sector-tabs {
+      display: flex; gap: var(--space-2); margin-bottom: var(--space-6);
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: 0; flex-wrap: wrap;
+    }
+    .sector-tab {
+      padding: var(--space-2) var(--space-4);
+      background: none; border: none;
+      color: var(--color-text-muted);
+      font-size: var(--text-sm); font-weight: 500;
+      cursor: pointer; border-bottom: 2px solid transparent;
+      margin-bottom: -1px; transition: color var(--transition), border-color var(--transition);
+      white-space: nowrap;
+    }
+    .sector-tab:hover { color: var(--color-text); }
+    .sector-tab.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+
+    /* ── VIEW TOGGLE ───────────────────────────────────────────────────── */
+    .view-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: var(--space-5); flex-wrap: wrap; gap: var(--space-3);
+    }
+    .view-toggle {
+      display: flex; border: 1px solid var(--color-border);
+      border-radius: var(--radius-md); overflow: hidden;
+    }
+    .view-btn {
+      padding: var(--space-2) var(--space-4); background: none; border: none;
+      color: var(--color-text-muted); font-size: var(--text-xs); font-weight: 500;
+      cursor: pointer; transition: background var(--transition), color var(--transition);
+    }
+    .view-btn + .view-btn { border-left: 1px solid var(--color-border); }
+    .view-btn.active { background: var(--color-accent); color: #fff; }
+    .section-title {
+      font-size: var(--text-base); font-weight: 600; color: var(--color-text);
+    }
+
+    /* ── KPI CARDS ─────────────────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: var(--space-3); margin-bottom: var(--space-6);
+    }
+    .kpi-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4) var(--space-5);
+    }
+    .kpi-label { font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-1); }
+    .kpi-value {
+      font-size: var(--text-lg); font-weight: 700;
+      font-variant-numeric: tabular-nums lining-nums;
+      font-family: var(--font-mono);
+      color: var(--color-text);
+    }
+    .kpi-sub { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--space-1); }
+
+    /* ── CHARTS ────────────────────────────────────────────────────────── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+      gap: var(--space-5); margin-bottom: var(--space-6);
+    }
+    .chart-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+    }
+    .chart-card.full-width { grid-column: 1 / -1; }
+    .chart-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: var(--space-4); gap: var(--space-3);
+    }
+    .chart-title { font-size: var(--text-sm); font-weight: 600; }
+    .chart-subtitle { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 2px; }
+    .chart-note { font-size: var(--text-xs); color: var(--color-text-faint); text-align: right; max-width: 200px; }
+    .chart-wrap { position: relative; height: 260px; }
+    .chart-wrap.tall { height: 340px; }
+    .chart-wrap.xtall { height: 420px; }
+
+    /* ── TABLE ─────────────────────────────────────────────────────────── */
+    .table-section { margin-bottom: var(--space-6); }
+    .table-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: var(--space-3); gap: var(--space-3); flex-wrap: wrap;
+    }
+    .table-controls { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+    .search-input {
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-2) var(--space-3);
+      color: var(--color-text); font-size: var(--text-xs);
+      font-family: var(--font-body); width: 180px;
+      transition: border-color var(--transition);
+    }
+    .search-input:focus { outline: none; border-color: var(--color-accent); }
+    .filter-btn {
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-muted); font-size: var(--text-xs);
+      cursor: pointer; transition: all var(--transition); white-space: nowrap;
+    }
+    .filter-btn.active { background: var(--color-accent-dim); border-color: var(--color-accent); color: var(--color-accent); }
+    .table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--color-border); }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--color-surface-2);
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-xs); font-weight: 600;
+      color: var(--color-text-muted); text-align: left;
+      white-space: nowrap; position: sticky; top: 0; z-index: 1;
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer; user-select: none;
+    }
+    thead th:hover { color: var(--color-text); }
+    thead th.sorted { color: var(--color-accent); }
+    tbody tr {
+      border-bottom: 1px solid var(--color-divider);
+      transition: background var(--transition);
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--color-surface-2); }
+    tbody td {
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-xs);
+      font-variant-numeric: tabular-nums lining-nums;
+    }
+    .td-name { font-weight: 600; color: var(--color-text); }
+    .td-ticker { font-family: var(--font-mono); font-size: 10px; color: var(--color-text-muted); }
+    .td-num { font-family: var(--font-mono); text-align: right; }
+    .td-region { color: var(--color-text-muted); }
+    .pill {
+      display: inline-flex; align-items: center;
+      padding: 1px var(--space-2);
+      border-radius: var(--radius-full, 9999px);
+      font-size: 10px; font-weight: 500;
+    }
+    .pill-americas { background: var(--color-blue-dim, rgba(88,166,255,0.12)); color: var(--color-accent); }
+    .pill-europe   { background: var(--color-purple-dim); color: var(--color-purple); }
+    .pill-apac     { background: var(--color-green-dim); color: var(--color-green); }
+    .pill-africa   { background: var(--color-orange-dim); color: var(--color-orange); }
+    .pe-positive { color: var(--color-green); }
+    .pe-negative { color: var(--color-red); }
+    .pe-high     { color: var(--color-yellow); }
+    .pe-extreme  { color: var(--color-orange); }
+    .pe-na       { color: var(--color-text-faint); }
+    .sparkbar-wrap { display: flex; gap: 2px; align-items: flex-end; height: 28px; }
+    .sparkbar { width: 5px; border-radius: 1px; background: var(--color-accent); opacity: 0.6; min-height: 2px; }
+
+    /* ── PRIVATE CO BOX ────────────────────────────────────────────────── */
+    .private-section {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5); margin-bottom: var(--space-6);
+    }
+    .private-title {
+      font-size: var(--text-sm); font-weight: 600;
+      margin-bottom: var(--space-1); display: flex; align-items: center; gap: var(--space-2);
+    }
+    .private-desc { font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-4); }
+    .private-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-3);
+    }
+    .private-card {
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+    }
+    .private-name { font-weight: 600; font-size: var(--text-xs); margin-bottom: var(--space-1); }
+    .private-val { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 700; color: var(--color-accent); }
+    .private-meta { font-size: 10px; color: var(--color-text-faint); margin-top: 2px; }
+
+    /* ── REGION VIEW ───────────────────────────────────────────────────── */
+    .region-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--space-5); margin-bottom: var(--space-6);
+    }
+    .region-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+    }
+    .region-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: var(--space-3);
+    }
+    .region-name { font-size: var(--text-sm); font-weight: 600; }
+    .region-count { font-size: var(--text-xs); color: var(--color-text-muted); }
+    .region-avg { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: 700; }
+
+    /* ── HIDDEN VIEWS ──────────────────────────────────────────────────── */
+    .view-panel { display: none; }
+    .view-panel.active { display: block; }
+
+    /* ── NOTE BOX ──────────────────────────────────────────────────────── */
+    .note-box {
+      background: var(--color-yellow-dim);
+      border: 1px solid var(--color-yellow);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-xs); color: var(--color-text-muted);
+      margin-bottom: var(--space-5);
+    }
+
+    /* ── FOOTER ────────────────────────────────────────────────────────── */
+    .footer {
+      padding: var(--space-4) var(--space-6);
+      font-size: var(--text-xs); color: var(--color-text-faint);
+      border-top: 1px solid var(--color-divider);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2);
+    }
+
+    @media (max-width: 768px) {
+      .chart-grid { grid-template-columns: 1fr; }
+      .content { padding: var(--space-4); }
+      .chart-wrap { height: 220px; }
+      .header { padding: var(--space-3) var(--space-4); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────── -->
+<header class="header">
+  <div class="header-left">
+    <a class="logo" href="#">
+      <svg class="logo-mark" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ValuScope logo">
+        <rect width="28" height="28" rx="6" fill="#388bfd" opacity="0.15"/>
+        <path d="M4 20 L10 10 L14 16 L18 8 L24 20" stroke="#388bfd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="18" cy="8" r="2.5" fill="#388bfd"/>
+      </svg>
+      <div>
+        <div class="logo-text">ValuScope</div>
+        <div class="logo-sub">P/E Intelligence</div>
+      </div>
+    </a>
+    <span class="badge">BETA</span>
+  </div>
+  <div class="header-right">
+    <span class="as-of">As of April 2026</span>
+    <button class="theme-btn" data-theme-toggle aria-label="Toggle theme">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ── MAIN ───────────────────────────────────────────────────────────── -->
+<main class="main">
+<div class="content">
+
+  <!-- SECTOR TABS -->
+  <nav class="sector-tabs" role="tablist">
+    <button class="sector-tab active" data-sector="overview" role="tab">⬡ Overview</button>
+    <button class="sector-tab" data-sector="banks" role="tab">🏦 Banks</button>
+    <button class="sector-tab" data-sector="fintechs" role="tab">💳 Fintechs</button>
+    <button class="sector-tab" data-sector="telecom-int" role="tab">📡 Telecom Integrated</button>
+    <button class="sector-tab" data-sector="telecom-mob" role="tab">📱 Telecom Mobile</button>
+    <button class="sector-tab" data-sector="cybersec" role="tab">🔐 Cybersecurity</button>
+  </nav>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       OVERVIEW
+  ════════════════════════════════════════════════════════════════════════ -->
+  <section id="overview-section" class="sector-section">
+    <div class="view-bar" style="margin-bottom:var(--space-4)">
+      <div class="section-title">Cross-Sector Comparison — All Five Segments</div>
+      <span class="as-of" style="font-size:var(--text-xs)">TTM P/E · Apr 2026</span>
+    </div>
+
+    <!-- KPI comparison row -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-3);margin-bottom:var(--space-6)">
+      <!-- Banks -->
+      <div class="kpi-card" style="border-top:2px solid #388bfd">
+        <div class="kpi-label" style="color:#388bfd;font-weight:600">🏦 Banks</div>
+        <div class="kpi-value">13.5x</div>
+        <div class="kpi-sub">Median TTM P/E · 10 cos.</div>
+        <div style="margin-top:var(--space-3);display:flex;flex-direction:column;gap:var(--space-1)">
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Range</span><span style="font-family:var(--font-mono)">9.1 – 18.1x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Fwd P/E (top 3)</span><span style="font-family:var(--font-mono)">~12.5x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">10yr Avg</span><span style="font-family:var(--font-mono)">12.4x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">vs 10yr Avg</span><span style="font-family:var(--font-mono);color:var(--color-yellow)">+9%</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Loss-making</span><span style="font-family:var(--font-mono)">0</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Private cos.</span><span style="font-family:var(--font-mono)">—</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Cheapest</span><span style="font-family:var(--font-mono)">DB 9.1x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Most expensive</span><span style="font-family:var(--font-mono)">UBS 18.1x</span></div>
+        </div>
+      </div>
+      <!-- Fintechs -->
+      <div class="kpi-card" style="border-top:2px solid #3fb950">
+        <div class="kpi-label" style="color:#3fb950;font-weight:600">💳 Fintechs</div>
+        <div class="kpi-value">32.7x</div>
+        <div class="kpi-sub">Median TTM P/E · 27 public</div>
+        <div style="margin-top:var(--space-3);display:flex;flex-direction:column;gap:var(--space-1)">
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Range (profitable)</span><span style="font-family:var(--font-mono)">8.7 – 86x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Fwd P/E (PYPL)</span><span style="font-family:var(--font-mono)">8.1x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">PYPL 10yr Avg</span><span style="font-family:var(--font-mono)">~35x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">vs PYPL hist.</span><span style="font-family:var(--font-mono);color:var(--color-green)">−74%</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Loss-making</span><span style="font-family:var(--font-mono);color:var(--color-red)">4</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Private cos.</span><span style="font-family:var(--font-mono)">4 (~$277B val.)</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Cheapest</span><span style="font-family:var(--font-mono)">OPFI 8.7x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Most expensive</span><span style="font-family:var(--font-mono)">GLBE 86x</span></div>
+        </div>
+      </div>
+      <!-- Telecom Integrated -->
+      <div class="kpi-card" style="border-top:2px solid #d29922">
+        <div class="kpi-label" style="color:#d29922;font-weight:600">📡 Telecom Integrated</div>
+        <div class="kpi-value">14.6x</div>
+        <div class="kpi-sub">Median TTM P/E · 20 cos.</div>
+        <div style="margin-top:var(--space-3);display:flex;flex-direction:column;gap:var(--space-1)">
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Range</span><span style="font-family:var(--font-mono)">3.6 – 27x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Fwd P/E (T/VZ)</span><span style="font-family:var(--font-mono)">~5.0x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">10yr Avg</span><span style="font-family:var(--font-mono)">14.2x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">vs 10yr Avg</span><span style="font-family:var(--font-mono);color:var(--color-yellow)">+3%</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Loss-making / distorted</span><span style="font-family:var(--font-mono);color:var(--color-red)">3</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Private cos.</span><span style="font-family:var(--font-mono)">—</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Cheapest</span><span style="font-family:var(--font-mono)">RCI 3.6x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Most expensive</span><span style="font-family:var(--font-mono)">SCMN 27x</span></div>
+        </div>
+      </div>
+      <!-- Telecom Mobile -->
+      <div class="kpi-card" style="border-top:2px solid #a371f7">
+        <div class="kpi-label" style="color:#a371f7;font-weight:600">📱 Telecom Mobile</div>
+        <div class="kpi-value">16.3x</div>
+        <div class="kpi-sub">Median TTM P/E · 9 cos.</div>
+        <div style="margin-top:var(--space-3);display:flex;flex-direction:column;gap:var(--space-1)">
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Range</span><span style="font-family:var(--font-mono)">9.0 – 52x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Fwd P/E (TMUS)</span><span style="font-family:var(--font-mono)">7.9x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">10yr Avg (TMUS)</span><span style="font-family:var(--font-mono)">~20x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">vs TMUS hist.</span><span style="font-family:var(--font-mono);color:var(--color-yellow)">+1%</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Loss-making</span><span style="font-family:var(--font-mono)">0</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Private cos.</span><span style="font-family:var(--font-mono)">—</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Cheapest</span><span style="font-family:var(--font-mono)">PLDT 9.0x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Most expensive</span><span style="font-family:var(--font-mono)">TRUE 52x</span></div>
+        </div>
+      </div>
+      <!-- Cybersecurity -->
+      <div class="kpi-card" style="border-top:2px solid #e05d44">
+        <div class="kpi-label" style="color:#e05d44;font-weight:600">🔐 Cybersecurity</div>
+        <div class="kpi-value">31.1x</div>
+        <div class="kpi-sub">Median TTM P/E · 15 public + 5 private</div>
+        <div style="margin-top:var(--space-3);display:flex;flex-direction:column;gap:var(--space-1)">
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Range (profitable)</span><span style="font-family:var(--font-mono)">14.3 – 93.8x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Fwd P/E (FTNT)</span><span style="font-family:var(--font-mono)">30x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">10yr Avg (CHKP)</span><span style="font-family:var(--font-mono)">~20x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">vs 10yr avg</span><span style="font-family:var(--font-mono);color:var(--color-red)">+56%</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Loss-making</span><span style="font-family:var(--font-mono);color:var(--color-red)">6</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Private cos.</span><span style="font-family:var(--font-mono)">5 (~$34.3B val.)</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Cheapest</span><span style="font-family:var(--font-mono)">CHKP 14.3x</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px"><span style="color:var(--color-text-muted)">Most expensive</span><span style="font-family:var(--font-mono)">PANW 93.8x</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sector median P/E comparison chart -->
+    <div class="chart-grid" style="margin-bottom:var(--space-6)">
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Sector Median P/E — Side-by-Side (TTM, current)</div>
+            <div class="chart-subtitle">Profitable companies only · loss-making and distorted values excluded from median</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="ov-bar-chart"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">P/E Distribution by Sector</div>
+            <div class="chart-subtitle">Box plot view: min / median / max (profitable cohort)</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="ov-range-chart"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Sector Median P/E — Historical Trend</div>
+            <div class="chart-subtitle">Composite sector averages 2015 – 2025</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="ov-trend-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Valuation premium table -->
+    <div class="chart-card" style="margin-bottom:var(--space-6)">
+      <div class="chart-title" style="margin-bottom:var(--space-4)">Valuation Premium / Discount vs Banks (baseline)</div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th class="td-num">🏦 Banks</th>
+              <th class="td-num">💳 Fintechs</th>
+              <th class="td-num">📡 Telecom Integrated</th>
+              <th class="td-num">📱 Telecom Mobile</th>
+              <th class="td-num">🔐 Cybersecurity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="font-weight:600">Median P/E (TTM)</td><td class="td-num">13.5x</td><td class="td-num" style="color:var(--color-orange)">32.7x</td><td class="td-num" style="color:var(--color-yellow)">14.6x</td><td class="td-num" style="color:var(--color-yellow)">16.3x</td><td class="td-num" style="color:var(--color-orange)">31.1x</td></tr>
+            <tr><td style="font-weight:600">Premium vs Banks</td><td class="td-num" style="color:var(--color-text-faint)">baseline</td><td class="td-num" style="color:var(--color-orange)">+142%</td><td class="td-num" style="color:var(--color-yellow)">+8%</td><td class="td-num" style="color:var(--color-yellow)">+21%</td><td class="td-num" style="color:var(--color-orange)">+130%</td></tr>
+            <tr><td style="font-weight:600">Forward P/E (available)</td><td class="td-num">~12.5x</td><td class="td-num">8.1x (PYPL)</td><td class="td-num">5.0x (T/VZ)</td><td class="td-num">7.9x (TMUS)</td><td class="td-num">30x (FTNT)</td></tr>
+            <tr><td style="font-weight:600">P/E Range (profitable)</td><td class="td-num">9.1 – 18.1x</td><td class="td-num">8.7 – 86x</td><td class="td-num">3.6 – 27x</td><td class="td-num">9.0 – 52x</td><td class="td-num">14.3 – 93.8x</td></tr>
+            <tr><td style="font-weight:600">Companies tracked</td><td class="td-num">10</td><td class="td-num">27 public + 4 private</td><td class="td-num">20</td><td class="td-num">9</td><td class="td-num">15 public + 5 private</td></tr>
+            <tr><td style="font-weight:600">Loss-making / no P/E</td><td class="td-num" style="color:var(--color-green)">0</td><td class="td-num" style="color:var(--color-red)">4</td><td class="td-num" style="color:var(--color-red)">3</td><td class="td-num" style="color:var(--color-green)">0</td><td class="td-num" style="color:var(--color-red)">6</td></tr>
+            <tr><td style="font-weight:600">Regions covered</td><td class="td-num">Americas, Europe, APAC</td><td class="td-num">Americas, Europe, APAC</td><td class="td-num">Americas, Europe, APAC</td><td class="td-num">Americas, APAC, Africa</td><td class="td-num">Americas, Europe</td></tr>
+            <tr><td style="font-weight:600">10yr hist. sector avg</td><td class="td-num">12.4x</td><td class="td-num">~35x (PYPL proxy)</td><td class="td-num">14.2x</td><td class="td-num">~20x (TMUS proxy)</td><td class="td-num">~20x (CHKP proxy)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Current P/E all companies scatter -->
+    <div class="chart-card" style="margin-bottom:var(--space-6)">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">All Companies — Current P/E Dot Plot</div>
+          <div class="chart-subtitle">Each dot = one company · grouped by sector · y-axis capped at 100x · outliers labelled</div>
+        </div>
+      </div>
+      <div class="chart-wrap tall"><canvas id="ov-dot-chart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       BANKS
+  ════════════════════════════════════════════════════════════════════════ -->
+  <section id="banks-section" class="sector-section" style="display:none">
+    <div class="view-bar">
+      <div class="section-title">Global Banks — P/E Overview</div>
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="overview" data-target="banks">Overview</button>
+        <button class="view-btn" data-view="regional" data-target="banks">Regional</button>
+        <button class="view-btn" data-view="companies" data-target="banks">Companies</button>
+      </div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-grid" id="banks-kpi">
+      <div class="kpi-card">
+        <div class="kpi-label">Sector Median P/E (TTM)</div>
+        <div class="kpi-value" id="banks-median">13.5x</div>
+        <div class="kpi-sub">10 companies (8 with history, 2 current-only)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Americas Avg P/E</div>
+        <div class="kpi-value">13.8x</div>
+        <div class="kpi-sub">JPM, BAC, GS, WFC, C</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Europe Avg P/E</div>
+        <div class="kpi-value">13.5x</div>
+        <div class="kpi-sub">HSBC, DB, BCS, UBS (DB: current P/E only)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Asia-Pacific P/E</div>
+        <div class="kpi-value">12.7x</div>
+        <div class="kpi-sub">Maybank (Malaysia, current-only)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">10yr Sector Avg</div>
+        <div class="kpi-value">12.4x</div>
+        <div class="kpi-sub">2015–2025 TTM avg</div>
+      </div>
+    </div>
+
+    <!-- OVERVIEW PANEL -->
+    <div id="banks-overview" class="view-panel active">
+      <div class="chart-grid">
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Historical Sector Avg P/E — Major Banks (TTM)</div>
+              <div class="chart-subtitle">JPM, BAC, HSBC, GS, WFC, C, BCS, UBS · 8 companies with multi-year data · null gaps = no data / loss year</div>
+            </div>
+            <div class="chart-note">Crisis dip 2009–2012 reflects post-GFC impairments</div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="banks-trend-chart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><div class="chart-title">Current P/E Snapshot</div><div class="chart-subtitle">All tracked banks, TTM</div></div></div>
+          <div class="chart-wrap"><canvas id="banks-bar-chart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><div class="chart-title">Americas vs Europe vs APAC</div><div class="chart-subtitle">5-year regional avg P/E trend</div></div></div>
+          <div class="chart-wrap"><canvas id="banks-region-trend"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGIONAL PANEL -->
+    <div id="banks-regional" class="view-panel">
+      <div class="region-grid">
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count">5 companies</div></div>
+          <div class="region-avg" id="rba-avg">13.8x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">JPMorgan, BofA, Goldman, Wells Fargo, Citigroup</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="banks-rga-chart"></canvas></div>
+        </div>
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌍 Europe</div><div class="region-count">4 companies</div></div>
+          <div class="region-avg">13.5x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">HSBC, Deutsche, Barclays, UBS</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="banks-rge-chart"></canvas></div>
+        </div>
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌏 Asia-Pacific</div><div class="region-count">1 company</div></div>
+          <div class="region-avg">12.7x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">Maybank (Malaysia)</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="banks-rgap-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPANIES PANEL -->
+    <div id="banks-companies" class="view-panel">
+      <div class="table-section">
+        <div class="table-header">
+          <div class="section-title">All Banks — Company Detail</div>
+          <div class="table-controls">
+            <input class="search-input" type="text" placeholder="Search company…" data-search-target="banks-table" />
+            <button class="filter-btn active" data-filter-region="all" data-filter-target="banks-table">All</button>
+            <button class="filter-btn" data-filter-region="Americas" data-filter-target="banks-table">Americas</button>
+            <button class="filter-btn" data-filter-region="Europe" data-filter-target="banks-table">Europe</button>
+            <button class="filter-btn" data-filter-region="APAC" data-filter-target="banks-table">APAC</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="banks-table">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th class="td-num">P/E (TTM)</th>
+                <th class="td-num">Fwd P/E</th>
+                <th class="td-num">Mkt Cap</th>
+                <th>Region</th>
+                <th>P/E Trend (2020–25)</th>
+              </tr>
+            </thead>
+            <tbody id="banks-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       FINTECHS
+  ════════════════════════════════════════════════════════════════════════ -->
+  <section id="fintechs-section" class="sector-section" style="display:none">
+    <div class="view-bar">
+      <div class="section-title">Global Fintechs — P/E Overview</div>
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="overview" data-target="fintechs">Overview</button>
+        <button class="view-btn" data-view="regional" data-target="fintechs">Regional</button>
+        <button class="view-btn" data-view="companies" data-target="fintechs">Companies</button>
+      </div>
+    </div>
+
+    <div class="note-box">⚠️ Fintechs exhibit wide P/E dispersion. Loss-making companies (negative P/E) and P/E &gt;150x are excluded from averages. Many high-growth names are pre-profitability or recently turned profitable.</div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Sector Median P/E (profitable)</div>
+        <div class="kpi-value">32.7x</div>
+        <div class="kpi-sub">27 public + 4 private tracked</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Americas Median P/E</div>
+        <div class="kpi-value">35.1x</div>
+        <div class="kpi-sub">PYPL, COIN, INTU, et al.</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Europe Median P/E</div>
+        <div class="kpi-value">29.1x</div>
+        <div class="kpi-sub">ADYEY, WISE, ETOR, GLBE</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Asia-Pacific Median P/E</div>
+        <div class="kpi-value">36.1x</div>
+        <div class="kpi-sub">NU, SE, GRAB</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Loss-making cos.</div>
+        <div class="kpi-value" style="color:var(--color-red)">4</div>
+        <div class="kpi-sub">KLAR, CHYM + 2 others</div>
+      </div>
+    </div>
+
+    <div id="fintechs-overview" class="view-panel active">
+      <div class="chart-grid">
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Fintech Sector P/E — Selected Key Players Historical</div>
+              <div class="chart-subtitle">PYPL, COIN, INTU, SQ(XYZ), NU — profitable cohort</div>
+            </div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="fin-trend-chart"></canvas></div>
+        </div>
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Current P/E Snapshot — All Profitable Fintechs</div>
+              <div class="chart-subtitle">TTM P/E (loss-makers excluded)</div>
+            </div>
+          </div>
+          <div class="chart-wrap xtall"><canvas id="fin-bar-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fintechs-regional" class="view-panel">
+      <div class="region-grid">
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count">16 companies</div></div>
+          <div class="region-avg">35.1x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">PYPL, HOOD, SOFI, AFRM, XYZ, COIN, INTU, TOST, DLO, RELY, UPST, LC, FOUR, WEX, DAVE, OPFI, NRDS, CHYM</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="fin-rga-chart"></canvas></div>
+        </div>
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌍 Europe / Israel</div><div class="region-count">5 companies</div></div>
+          <div class="region-avg">29.1x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">ADYEY, WISE.L, KLAR, ETOR, GLBE</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="fin-rge-chart"></canvas></div>
+        </div>
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌏 Asia-Pacific / EM</div><div class="region-count">4 companies</div></div>
+          <div class="region-avg">36.1x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">NU (Brazil), SE (Singapore), GRAB (Singapore)</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="fin-rgap-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fintechs-companies" class="view-panel">
+      <!-- Private Companies -->
+      <div class="private-section">
+        <div class="private-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Private Fintechs — Valuation Reference
+        </div>
+        <div class="private-desc">No P/E available (not publicly listed). Valuations from latest funding rounds / secondary market estimates.</div>
+        <div class="private-grid">
+          <div class="private-card">
+            <div class="private-name">Stripe</div>
+            <div class="private-val">~$91.5B</div>
+            <div class="private-meta">Private · US / Ireland · Payments infrastructure</div>
+          </div>
+          <div class="private-card">
+            <div class="private-name">Revolut</div>
+            <div class="private-val">~$75B</div>
+            <div class="private-meta">Private · UK / Europe · Neobank</div>
+          </div>
+          <div class="private-card">
+            <div class="private-name">Ant Financial</div>
+            <div class="private-val">~$78B+</div>
+            <div class="private-meta">Private · China · Super-app fintech</div>
+          </div>
+          <div class="private-card">
+            <div class="private-name">Ramp</div>
+            <div class="private-val">~$32B</div>
+            <div class="private-meta">Private · US · Corporate spend management</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-section">
+        <div class="table-header">
+          <div class="section-title">All Public Fintechs — Company Detail</div>
+          <div class="table-controls">
+            <input class="search-input" type="text" placeholder="Search company…" data-search-target="fin-table" />
+            <button class="filter-btn active" data-filter-region="all" data-filter-target="fin-table">All</button>
+            <button class="filter-btn" data-filter-region="Americas" data-filter-target="fin-table">Americas</button>
+            <button class="filter-btn" data-filter-region="Europe" data-filter-target="fin-table">Europe</button>
+            <button class="filter-btn" data-filter-region="APAC" data-filter-target="fin-table">APAC</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="fin-table">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th class="td-num">P/E (TTM)</th>
+                <th class="td-num">Fwd P/E</th>
+                <th class="td-num">Mkt Cap</th>
+                <th>Region</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="fin-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       TELECOM INTEGRATED
+  ════════════════════════════════════════════════════════════════════════ -->
+  <section id="telecom-int-section" class="sector-section" style="display:none">
+    <div class="view-bar">
+      <div class="section-title">Integrated Telecoms — P/E Overview</div>
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="overview" data-target="telecom-int">Overview</button>
+        <button class="view-btn" data-view="regional" data-target="telecom-int">Regional</button>
+        <button class="view-btn" data-view="companies" data-target="telecom-int">Companies</button>
+      </div>
+    </div>
+
+    <div class="note-box">⚠️ Telecom P/Es are suppressed by heavy capex and depreciation. Several operators (VOD, TEF, Orange) show distorted or negative figures due to impairments. Interpret cautiously.</div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Sector Median P/E</div>
+        <div class="kpi-value">14.6x</div>
+        <div class="kpi-sub">20 cos. tracked</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Americas Median</div>
+        <div class="kpi-value">5.2x</div>
+        <div class="kpi-sub">T, VZ, CMCSA, BCE, RCI, AMX</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Europe Median</div>
+        <div class="kpi-value">20.9x</div>
+        <div class="kpi-sub">DTEGY, BTGOF, SCMN, TELNY</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">APAC Median</div>
+        <div class="kpi-value">14.3x</div>
+        <div class="kpi-sub">NTT, KDDI, SKM, Singtel, et al.</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">10yr Sector Avg</div>
+        <div class="kpi-value">14.2x</div>
+        <div class="kpi-sub">Historical composite</div>
+      </div>
+    </div>
+
+    <div id="telecom-int-overview" class="view-panel active">
+      <div class="chart-grid">
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Integrated Telecom Historical P/E — Key Players</div>
+              <div class="chart-subtitle">AT&T, Verizon, Comcast, BCE, SKM, VEON</div>
+            </div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="tint-trend-chart"></canvas></div>
+        </div>
+        <div class="chart-card full-width">
+          <div class="chart-header"><div><div class="chart-title">Current P/E — All Integrated Telecoms</div><div class="chart-subtitle">TTM snapshot (distorted values noted)</div></div></div>
+          <div class="chart-wrap xtall"><canvas id="tint-bar-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="telecom-int-regional" class="view-panel">
+      <div class="region-grid">
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count">6 companies</div></div>
+          <div class="region-avg">5.2x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">AT&T, Verizon, Comcast, BCE, Rogers, América Móvil</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tint-rga-chart"></canvas></div>
+        </div>
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌍 Europe</div><div class="region-count">7 companies</div></div>
+          <div class="region-avg">20.9x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">DTEGY, Vodafone, Telefonica, BT, Orange, Swisscom, Telenor, VEON</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tint-rge-chart"></canvas></div>
+        </div>
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌏 Asia-Pacific</div><div class="region-count">7 companies</div></div>
+          <div class="region-avg">14.3x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">NTT, KDDI, SoftBank, SK Telecom, Singtel, Axiata, Telstra, Telkom Indonesia</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tint-rgap-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="telecom-int-companies" class="view-panel">
+      <div class="table-section">
+        <div class="table-header">
+          <div class="section-title">All Integrated Telecoms — Company Detail</div>
+          <div class="table-controls">
+            <input class="search-input" type="text" placeholder="Search company…" data-search-target="tint-table" />
+            <button class="filter-btn active" data-filter-region="all" data-filter-target="tint-table">All</button>
+            <button class="filter-btn" data-filter-region="Americas" data-filter-target="tint-table">Americas</button>
+            <button class="filter-btn" data-filter-region="Europe" data-filter-target="tint-table">Europe</button>
+            <button class="filter-btn" data-filter-region="APAC" data-filter-target="tint-table">APAC</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="tint-table">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th class="td-num">P/E (TTM)</th>
+                <th class="td-num">Fwd P/E</th>
+                <th class="td-num">Mkt Cap</th>
+                <th>Region</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="tint-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       TELECOM MOBILE
+  ════════════════════════════════════════════════════════════════════════ -->
+  <section id="telecom-mob-section" class="sector-section" style="display:none">
+    <div class="view-bar">
+      <div class="section-title">Mobile-Only Telecoms — P/E Overview</div>
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="overview" data-target="telecom-mob">Overview</button>
+        <button class="view-btn" data-view="regional" data-target="telecom-mob">Regional</button>
+        <button class="view-btn" data-view="companies" data-target="telecom-mob">Companies</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Sector Median P/E</div>
+        <div class="kpi-value">16.3x</div>
+        <div class="kpi-sub">9 cos. tracked</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Americas Median</div>
+        <div class="kpi-value">15.4x</div>
+        <div class="kpi-sub">TMUS, TIGO</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">APAC Median</div>
+        <div class="kpi-value">15.2x</div>
+        <div class="kpi-sub">Airtel, Maxis, Indosat, True, PLDT</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Africa / EM</div>
+        <div class="kpi-value">18.3x</div>
+        <div class="kpi-sub">MTN Group</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">T-Mobile (TMUS) Fwd</div>
+        <div class="kpi-value">7.9x</div>
+        <div class="kpi-sub">5G growth leader, US</div>
+      </div>
+    </div>
+
+    <div id="telecom-mob-overview" class="view-panel active">
+      <div class="chart-grid">
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Mobile Telecom Historical P/E — Key Players</div>
+              <div class="chart-subtitle">T-Mobile US, Turkcell, PLDT</div>
+            </div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="tmob-trend-chart"></canvas></div>
+        </div>
+        <div class="chart-card full-width">
+          <div class="chart-header"><div><div class="chart-title">Current P/E — All Mobile Telecoms</div><div class="chart-subtitle">TTM snapshot</div></div></div>
+          <div class="chart-wrap"><canvas id="tmob-bar-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="telecom-mob-regional" class="view-panel">
+      <div class="region-grid">
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count">2 companies</div></div>
+          <div class="region-avg">15.4x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">T-Mobile US, Millicom</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tmob-rga-chart"></canvas></div>
+        </div>
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌏 Asia-Pacific / EM</div><div class="region-count">6 companies</div></div>
+          <div class="region-avg">15.2x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">Bharti Airtel, Maxis, Turkcell, Indosat, True Corp, PLDT</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tmob-rgap-chart"></canvas></div>
+        </div>
+        <div class="region-card">
+          <div class="region-header"><div class="region-name">🌍 Africa / EM</div><div class="region-count">1 company</div></div>
+          <div class="region-avg">18.3x</div>
+          <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">MTN Group (South Africa)</div>
+          <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tmob-rga2-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="telecom-mob-companies" class="view-panel">
+      <div class="table-section">
+        <div class="table-header">
+          <div class="section-title">All Mobile Telecoms — Company Detail</div>
+          <div class="table-controls">
+            <input class="search-input" type="text" placeholder="Search company…" data-search-target="tmob-table" />
+            <button class="filter-btn active" data-filter-region="all" data-filter-target="tmob-table">All</button>
+            <button class="filter-btn" data-filter-region="Americas" data-filter-target="tmob-table">Americas</button>
+            <button class="filter-btn" data-filter-region="APAC" data-filter-target="tmob-table">APAC</button>
+            <button class="filter-btn" data-filter-region="Africa" data-filter-target="tmob-table">Africa</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="tmob-table">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th class="td-num">P/E (TTM)</th>
+                <th class="td-num">Fwd P/E</th>
+                <th class="td-num">Mkt Cap</th>
+                <th>Region</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="tmob-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       CYBERSECURITY
+  ════════════════════════════════════════════════════════════════════════ -->
+  <section id="cybersec-section" class="sector-section" style="display:none">
+    <div class="view-bar">
+      <div class="section-title">Cybersecurity — P/E Overview</div>
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="overview" data-target="cybersec">Overview</button>
+        <button class="view-btn" data-view="regional" data-target="cybersec">Regional</button>
+        <button class="view-btn" data-view="companies" data-target="cybersec">Companies</button>
+      </div>
+    </div>
+    <div class="note-box">⚠️ Cybersecurity valuations vary widely: profitable incumbents (CHKP, FTNT) trade at 14–34x while high-growth platforms (CRWD, NET, ZS) remain GAAP loss-making. Loss-making companies (negative P/E) are excluded from sector averages.</div>
+
+    <!-- OVERVIEW panel -->
+    <div id="cybersec-overview" class="view-panel active">
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Sector Median P/E (profitable)</div><div class="kpi-value">31.1x</div><div class="kpi-sub">15 public + 5 private tracked</div></div>
+        <div class="kpi-card"><div class="kpi-label">Americas Median</div><div class="kpi-value">27.4x</div><div class="kpi-sub">FTNT, PANW, OKTA, QLYS, GEN, AKAM, VRSN</div></div>
+        <div class="kpi-card"><div class="kpi-label">Europe / Israel Median</div><div class="kpi-value">14.3x</div><div class="kpi-sub">CHKP (Check Point, Israel)</div></div>
+        <div class="kpi-card"><div class="kpi-label">Loss-making cos.</div><div class="kpi-value" style="color:var(--color-red)">6</div><div class="kpi-sub">CRWD, ZS, S, NET, TENB, CYBR</div></div>
+        <div class="kpi-card"><div class="kpi-label">10yr Sector Avg</div><div class="kpi-value">~48x</div><div class="kpi-sub">CHKP proxy (longest history)</div></div>
+      </div>
+      <div class="chart-grid" style="margin-bottom:var(--space-6)">
+        <div class="chart-card full-width">
+          <div class="chart-title">Cybersecurity Historical P/E — Key Players (TTM)</div>
+          <div class="chart-sub">CHKP, FTNT, PANW, OKTA, QLYS, AKAM, VRSN — profitable cohort; loss-making excluded</div>
+          <div class="chart-wrap" style="height:320px"><canvas id="cybersec-trend-chart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Current P/E Snapshot — All Cybersecurity</div>
+          <div class="chart-sub">TTM, profitable companies only</div>
+          <div class="chart-wrap" style="height:280px"><canvas id="cybersec-bar-chart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Americas vs Europe P/E</div>
+          <div class="chart-sub">Regional median comparison</div>
+          <div class="chart-wrap" style="height:280px"><canvas id="cybersec-region-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGIONAL panel -->
+    <div id="cybersec-regional" class="view-panel">
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-title">🇺🇸 Americas</div>
+          <div class="chart-sub">FTNT, PANW, OKTA, QLYS, GEN, AKAM, VRSN, CRWD*, ZS*, S*, NET*, TENB*</div>
+          <div class="chart-wrap" style="height:240px"><canvas id="cybersec-region-americas"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">🇪🇺 Europe / Israel</div>
+          <div class="chart-sub">CHKP (Israel), Snyk (UK, private)</div>
+          <div class="chart-wrap" style="height:240px"><canvas id="cybersec-region-eu"></canvas></div>
+        </div>
+        <div class="chart-card full-width">
+          <div class="chart-title">Private Companies — Valuation Reference</div>
+          <div class="chart-sub">No public P/E; last known VC valuation shown</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="cybersec-private-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPANIES panel -->
+    <div id="cybersec-companies" class="view-panel">
+      <div class="table-section">
+        <div class="table-header">
+          <div class="section-title">All Cybersecurity Companies — Company Detail</div>
+          <div class="table-controls">
+            <input class="search-input" id="cybersec-search" type="text" placeholder="Search company..." />
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="Americas">Americas</button>
+            <button class="filter-btn" data-filter="Europe">Europe / Israel</button>
+            <button class="filter-btn" data-filter="Private">Private</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Company</th>
+              <th class="td-num">P/E (TTM)</th>
+              <th class="td-num">Fwd P/E</th>
+              <th class="td-num">Mkt Cap</th>
+              <th>Region</th>
+              <th>Segment</th>
+            </tr></thead>
+            <tbody id="cybersec-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>ValuScope — Data sourced from public market data providers. All P/E ratios are TTM unless noted. Negative P/E and values &gt;150x excluded from averages.</span>
+    <span>Not financial advice · Last updated Apr 2026</span>
+  </footer>
+</div>
+</main>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   DATA — EXPANDED UNIVERSE
+═══════════════════════════════════════════════════════════════════════ */
+
+const YEARS = [2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+const YEARS_SHORT = [2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+const YEARS5 = [2020,2021,2022,2023,2024,2025];
+
+// Historical series uses null for unavailable years
+const BANKS_DATA = {
+  companies: [
+    { name:'JPMorgan Chase', ticker:'JPM', region:'Americas', cap:'$698B', pe:14.84, fwdPe:13.5,
+      hist:{2005:13.1,2006:12.2,2007:11.5,2008:12.9,2009:18.4,2010:11.7,2011:8.5,2012:9.4,2013:10.6,2014:10.4,2015:11.0,2016:13.2,2017:14.1,2018:12.7,2019:13.9,2020:14.8,2021:12.6,2022:10.9,2023:11.4,2024:13.2,2025:14.84} },
+    { name:'Bank of America', ticker:'BAC', region:'Americas', cap:'$325B', pe:13.31, fwdPe:null,
+      hist:{2005:11.2,2006:11.5,2007:9.8,2008:null,2009:null,2010:14.9,2011:7.1,2012:8.9,2013:10.3,2014:12.1,2015:11.8,2016:15.2,2017:17.4,2018:12.3,2019:13.1,2020:18.4,2021:14.3,2022:10.2,2023:9.8,2024:12.4,2025:13.31} },
+    { name:'Goldman Sachs', ticker:'GS', region:'Americas', cap:'$186B', pe:16.62, fwdPe:13.5,
+      hist:{2006:10.9,2007:9.8,2008:null,2009:null,2010:9.4,2011:6.2,2012:10.8,2013:11.2,2014:12.1,2015:10.8,2016:12.5,2017:14.1,2018:8.1,2019:11.2,2020:12.4,2021:7.9,2022:9.1,2023:14.2,2024:15.8,2025:16.62} },
+    { name:'Wells Fargo', ticker:'WFC', region:'Americas', cap:'$249B', pe:12.56, fwdPe:11.5,
+      hist:{2005:12.8,2006:13.4,2007:12.1,2008:9.7,2009:14.2,2010:11.9,2011:9.8,2012:10.7,2013:11.5,2014:12.1,2015:12.4,2016:13.9,2017:13.2,2018:10.8,2019:12.1,2020:null,2021:11.8,2022:9.4,2023:10.2,2024:11.9,2025:12.56} },
+    { name:'Citigroup', ticker:'C', region:'Americas', cap:'$141B', pe:15.99, fwdPe:null,
+      hist:{2005:10.8,2006:10.1,2007:8.9,2008:null,2009:null,2010:12.4,2011:6.8,2012:8.9,2013:10.1,2014:10.8,2015:9.2,2016:10.9,2017:12.8,2018:9.2,2019:9.8,2020:8.9,2021:7.4,2022:5.8,2023:7.2,2024:12.1,2025:15.99} },
+    { name:'HSBC', ticker:'HSBC', region:'Europe', cap:'$188B', pe:15.09, fwdPe:null,
+      hist:{2005:13.4,2006:12.8,2007:11.9,2008:9.1,2009:14.2,2010:12.4,2011:9.1,2012:10.8,2013:12.1,2014:12.9,2015:11.4,2016:13.2,2017:14.8,2018:12.1,2019:13.4,2020:13.8,2021:11.2,2022:8.9,2023:10.4,2024:13.8,2025:15.09} },
+    { name:'Deutsche Bank', ticker:'DB', region:'Europe', cap:'$44B', pe:9.11, fwdPe:null, hist:{2025:9.11} },
+    { name:'Barclays', ticker:'BCS', region:'Europe', cap:'$61B', pe:10.26, fwdPe:null,
+      hist:{2005:9.8,2006:9.4,2007:8.1,2008:null,2009:null,2010:8.4,2011:5.9,2012:7.1,2013:9.2,2014:9.8,2015:8.9,2016:null,2017:null,2018:6.4,2019:7.8,2020:8.4,2021:7.2,2022:5.4,2023:6.8,2024:9.1,2025:10.26} },
+    { name:'UBS Group', ticker:'UBS', region:'Europe', cap:'$98B', pe:18.10, fwdPe:null,
+      hist:{2005:12.1,2006:11.4,2007:9.2,2008:null,2009:null,2010:null,2011:8.4,2012:10.1,2013:12.4,2014:13.8,2015:12.9,2016:14.1,2017:15.2,2018:11.4,2019:12.8,2020:14.2,2021:12.1,2022:null,2023:null,2024:15.4,2025:18.10} },
+    { name:'Maybank', ticker:'MLYNF', region:'APAC', cap:'$28B', pe:12.73, fwdPe:null, hist:{2025:12.73} },
+  ]
+};
+
+const FINTECHS_DATA = {
+  companies: [
+    // Retained
+    { name:'PayPal', ticker:'PYPL', region:'Americas', cap:'$67B', pe:9.21, fwdPe:8.1,
+      hist:{2015:28.4,2016:32.1,2017:42.8,2018:31.2,2019:38.4,2020:72.1,2021:48.9,2022:21.4,2023:18.2,2024:14.1,2025:9.21} },
+    { name:'Block (SQ)', ticker:'XYZ', region:'Americas', cap:'$37B', pe:32.69, fwdPe:null,
+      hist:{2019:null,2020:null,2021:128.4,2022:null,2023:null,2024:22.4,2025:32.69} },
+    { name:'Nu Holdings', ticker:'NU', region:'Americas', cap:'$54B', pe:26.60, fwdPe:null,
+      hist:{2023:48.2,2024:34.1,2025:26.60} },
+    { name:'Robinhood', ticker:'HOOD', region:'Americas', cap:'$22B', pe:42.37, fwdPe:null,
+      hist:{2024:38.1,2025:42.37} },
+    { name:'Sea Limited', ticker:'SE', region:'APAC', cap:'$43B', pe:35.87, fwdPe:null,
+      hist:{2023:null,2024:28.4,2025:35.87} },
+    { name:'Grab Holdings', ticker:'GRAB', region:'APAC', cap:'$17B', pe:67.0, fwdPe:null, hist:{2025:67.0} },
+    { name:'Adyen', ticker:'ADYEY', region:'Europe', cap:'$38B', pe:28.82, fwdPe:null, hist:{2025:28.82} },
+    { name:'SoFi Technologies', ticker:'SOFI', region:'Americas', cap:'$11B', pe:48.79, fwdPe:null,
+      hist:{2024:null,2025:48.79} },
+    { name:'Affirm', ticker:'AFRM', region:'Americas', cap:'$12B', pe:74.42, fwdPe:null, hist:{2025:74.42} },
+    { name:'Wise', ticker:'WISE.L', region:'Europe', cap:'$14B', pe:29.35, fwdPe:null, hist:{2025:29.35} },
+    { name:'Klarna', ticker:'KLAR', region:'Europe', cap:'$15B', pe:null, fwdPe:null, notes:'Loss-making; IPO 2025', hist:{} },
+    // NEW
+    { name:'Coinbase', ticker:'COIN', region:'Americas', cap:'$54B', pe:44.80, fwdPe:null,
+      hist:{2021:17.4,2024:26.2,2025:44.80} },
+    { name:'Intuit', ticker:'INTU', region:'Americas', cap:'$108B', pe:25.19, fwdPe:null,
+      hist:{2005:22.1,2010:28.4,2015:32.1,2016:35.2,2017:42.8,2018:38.1,2019:48.2,2020:52.4,2021:82.1,2022:42.3,2023:38.4,2024:28.9,2025:25.19} },
+    { name:'Toast', ticker:'TOST', region:'Americas', cap:'$17B', pe:63.4, fwdPe:null,
+      hist:{2025:63.4} },
+    { name:'dLocal', ticker:'DLO', region:'Americas', cap:'$3.9B', pe:20.78, fwdPe:null,
+      hist:{2022:44.5,2023:36.1,2024:28.9,2025:20.78} },
+    { name:'eToro', ticker:'ETOR', region:'Europe', cap:'$3.2B', pe:16.74, fwdPe:null,
+      hist:{2025:16.74} },
+    { name:'Chime', ticker:'CHYM', region:'Americas', cap:'$9B', pe:null, fwdPe:null, notes:'Loss-making; recently IPO\'d', hist:{} },
+    { name:'Remitly', ticker:'RELY', region:'Americas', cap:'$4.1B', pe:63.32, fwdPe:null,
+      hist:{2025:63.32} },
+    { name:'Upstart', ticker:'UPST', region:'Americas', cap:'$3.2B', pe:73.53, fwdPe:null,
+      hist:{2021:105.8,2025:73.53} },
+    { name:'LendingClub', ticker:'LC', region:'Americas', cap:'$1.9B', pe:14.31, fwdPe:null,
+      hist:{2021:134.3,2022:3.15,2023:24.3,2024:36.0,2025:14.31} },
+    { name:'Shift4 Payments', ticker:'FOUR', region:'Americas', cap:'$5.0B', pe:44.87, fwdPe:null,
+      hist:{2022:53.3,2023:52.0,2024:34.3,2025:44.87} },
+    { name:'WEX Inc', ticker:'WEX', region:'Americas', cap:'$6.0B', pe:20.72, fwdPe:null,
+      hist:{2010:18.4,2015:24.2,2016:31.4,2017:38.2,2018:42.1,2019:52.8,2020:38.1,2021:196.2,2022:14.8,2023:12.4,2024:11.8,2025:20.72} },
+    { name:'Global-e Online', ticker:'GLBE', region:'Europe', cap:'$5.7B', pe:86.44, fwdPe:null,
+      hist:{2025:86.44} },
+    { name:'Dave Inc', ticker:'DAVE', region:'Americas', cap:'$3.1B', pe:17.22, fwdPe:null,
+      hist:{2024:20.7,2025:17.22} },
+    { name:'OppFi', ticker:'OPFI', region:'Americas', cap:'$740M', pe:8.66, fwdPe:null,
+      hist:{2020:16.2,2021:9.5,2022:41.0,2024:21.3,2025:8.66} },
+    { name:'NerdWallet', ticker:'NRDS', region:'Americas', cap:'$802M', pe:16.88, fwdPe:null,
+      hist:{2024:35.0,2025:16.88} },
+    { name:'Pagaya', ticker:'PGY', region:'Americas', cap:'$1.1B', pe:22.5, fwdPe:null,
+      hist:{2025:22.5} },
+  ]
+};
+
+const TINT_DATA = {
+  companies: [
+    // Retained
+    { name:'AT&T', ticker:'T', region:'Americas', cap:'$148B', pe:8.80, fwdPe:5.0,
+      hist:{2005:16.2,2006:17.1,2007:18.4,2008:14.2,2009:15.8,2010:12.4,2011:11.8,2012:13.2,2013:10.8,2014:10.2,2015:12.8,2016:15.4,2017:14.2,2018:7.4,2019:18.2,2020:18.8,2021:null,2022:7.4,2023:6.8,2024:7.8,2025:8.80} },
+    { name:'Verizon', ticker:'VZ', region:'Americas', cap:'$172B', pe:11.52, fwdPe:5.0,
+      hist:{2005:11.4,2006:14.8,2007:12.1,2008:13.4,2009:14.2,2010:12.8,2011:14.1,2012:17.4,2013:18.2,2014:12.4,2015:13.1,2016:13.8,2017:13.2,2018:11.8,2019:12.4,2020:11.9,2021:10.4,2022:7.8,2023:8.4,2024:9.8,2025:11.52} },
+    { name:'Deutsche Telekom', ticker:'DTEGY', region:'Europe', cap:'$112B', pe:14.82, fwdPe:null, hist:{2025:14.82} },
+    { name:'Vodafone', ticker:'VOD', region:'Europe', cap:'$21B', pe:null, fwdPe:null, notes:'Loss-making (impairments)',
+      hist:{2018:14.8,2019:null,2020:null,2021:13.2,2022:null,2023:null,2024:null,2025:null} },
+    { name:'Telefónica', ticker:'TEF', region:'Europe', cap:'$26B', pe:null, fwdPe:null, notes:'Loss-making',
+      hist:{2005:14.8,2010:11.2,2015:14.1,2018:10.4,2019:8.2,2020:null,2021:null,2022:null} },
+    { name:'América Móvil', ticker:'AMX', region:'Americas', cap:'$48B', pe:16.62, fwdPe:null, notes:'Historical distorted (250–800x)', hist:{2025:16.62} },
+    { name:'Singtel', ticker:'SNGNF', region:'APAC', cap:'$63B', pe:13.14, fwdPe:null, hist:{2025:13.14} },
+    { name:'Axiata', ticker:'AXXTF', region:'APAC', cap:'$8B', pe:19.68, fwdPe:null, hist:{2025:19.68} },
+    // NEW
+    { name:'Orange (France)', ticker:'ORA.PA', region:'Europe', cap:'$48B', pe:null, fwdPe:null, notes:'Current ~150x (distorted); impairments',
+      hist:{2025:null} },
+    { name:'BT Group', ticker:'BTGOF', region:'Europe', cap:'$28B', pe:22.31, fwdPe:null, hist:{2025:22.31} },
+    { name:'NTT (Japan)', ticker:'9432.T', region:'APAC', cap:'$85B', pe:12.26, fwdPe:null, hist:{2025:12.26} },
+    { name:'KDDI (Japan)', ticker:'9433.T', region:'APAC', cap:'$66B', pe:14.33, fwdPe:null, hist:{2025:14.33} },
+    { name:'SoftBank Corp', ticker:'9434.T', region:'APAC', cap:'$72B', pe:19.92, fwdPe:null, hist:{2025:19.92} },
+    { name:'SK Telecom', ticker:'SKM', region:'APAC', cap:'$14B', pe:28.4, fwdPe:null,
+      hist:{2005:11.2,2006:12.4,2007:14.8,2008:9.2,2009:10.4,2010:11.8,2011:12.1,2012:13.4,2013:14.2,2014:15.8,2015:16.1,2016:14.8,2017:12.4,2018:9.8,2019:10.2,2020:11.4,2021:7.8,2022:8.2,2023:9.8,2024:18.4,2025:28.4}, notes:'54.8x current quote likely FX/timing distortion' },
+    { name:'Telstra (Australia)', ticker:'TLS.AX', region:'APAC', cap:'$40B', pe:26.65, fwdPe:null, hist:{2025:26.65} },
+    { name:'Rogers Canada', ticker:'RCI', region:'Americas', cap:'$18B', pe:3.63, fwdPe:null, hist:{2025:3.63} },
+    { name:'Swisscom', ticker:'SCMN.SW', region:'Europe', cap:'$34B', pe:26.99, fwdPe:null, hist:{2025:26.99} },
+    { name:'Comcast', ticker:'CMCSA', region:'Americas', cap:'$107B', pe:5.45, fwdPe:null,
+      hist:{2005:22.4,2006:28.1,2007:21.4,2008:14.2,2009:18.4,2010:16.8,2011:18.2,2012:21.4,2013:20.8,2014:18.4,2015:17.2,2016:18.8,2017:22.4,2018:14.8,2019:15.4,2020:18.2,2021:14.8,2022:10.4,2023:9.8,2024:8.4,2025:5.45} },
+    { name:'BCE Canada', ticker:'BCE', region:'Americas', cap:'$23B', pe:4.93, fwdPe:null,
+      hist:{2005:14.8,2006:16.2,2007:18.4,2008:9.8,2009:12.4,2010:14.8,2011:18.2,2012:22.4,2013:24.8,2014:28.1,2015:31.4,2016:38.2,2017:42.4,2018:68.1,2019:null,2020:null,2021:null,2022:null,2023:null,2024:null,2025:4.93}, notes:'2022–24 dividend recapitalization distortion' },
+    { name:'Telenor', ticker:'TELNY', region:'Europe', cap:'$24B', pe:20.51, fwdPe:null, hist:{2025:20.51} },
+    { name:'VEON', ticker:'VEON', region:'Europe', cap:'$3.7B', pe:7.26, fwdPe:null,
+      hist:{2005:8.4,2008:null,2010:12.4,2012:null,2015:-13.2,2016:null,2018:null,2020:11.4,2021:7.8,2022:null,2023:null,2024:8.2,2025:7.26} },
+    { name:'Telkom Indonesia', ticker:'TLKM.JK', region:'APAC', cap:'$21B', pe:14.18, fwdPe:null, hist:{2025:14.18} },
+  ]
+};
+
+const TMOB_DATA = {
+  companies: [
+    { name:'T-Mobile US', ticker:'TMUS', region:'Americas', cap:'$290B', pe:20.28, fwdPe:7.9,
+      hist:{2009:null,2010:null,2011:null,2012:null,2013:null,2014:null,2015:null,2016:null,2017:22.4,2018:null,2019:null,2020:null,2021:null,2022:null,2023:null,2024:18.4,2025:20.28} },
+    { name:'Bharti Airtel', ticker:'BHARTIARTL.NS', region:'APAC', cap:'$100B', pe:36.39, fwdPe:null, hist:{2025:36.39} },
+    { name:'Maxis', ticker:'6012.KL', region:'APAC', cap:'$9B', pe:18.30, fwdPe:null, hist:{2025:18.30} },
+    { name:'Turkcell', ticker:'TKC', region:'APAC', cap:'$5B', pe:14.09, fwdPe:null,
+      hist:{2020:10.4,2021:8.2,2022:6.4,2023:9.8,2024:12.1,2025:14.09} },
+    // NEW
+    { name:'MTN Group', ticker:'MTN.JO', region:'Africa', cap:'$20B', pe:18.29, fwdPe:null, hist:{2025:18.29} },
+    { name:'Millicom (TIGO)', ticker:'TIGO', region:'Americas', cap:'$13.7B', pe:10.45, fwdPe:null, hist:{2025:10.45} },
+    { name:'Indosat (Indonesia)', ticker:'ISAT.JK', region:'APAC', cap:'$4.5B', pe:12.0, fwdPe:null, hist:{2025:12.0} },
+    { name:'True Corp (Thailand)', ticker:'TRUE.BK', region:'APAC', cap:'$14B', pe:52.22, fwdPe:null, notes:'High P/E post-merger', hist:{2025:52.22} },
+    { name:'PLDT (Philippines)', ticker:'PHI', region:'APAC', cap:'$4.5B', pe:9.02, fwdPe:null,
+      hist:{2015:14.2,2016:13.8,2017:12.4,2018:11.2,2019:10.8,2020:10.4,2021:9.8,2022:9.2,2023:8.8,2024:9.4,2025:9.02} },
+  ]
+};
+
+const CYBERSEC_DATA = {
+  companies: [
+    // ── Profitable public ──────────────────────────────────────────────
+    { name:'Check Point Software', ticker:'CHKP', region:'Europe', cap:'$14B', pe:14.31, fwdPe:null, segment:'Network Security',
+      hist:{2005:15.8,2006:18.7,2007:17.6,2008:12.7,2009:20.2,2010:21.7,2011:20.7,2012:16.1,2013:19.7,2014:22.9,2015:21.8,2016:20.2,2017:21.5,2018:19.9,2019:20.4,2020:22.3,2021:19.2,2022:20.0,2023:21.5,2024:25.0,2025:14.31} },
+    { name:'Fortinet', ticker:'FTNT', region:'Americas', cap:'$61B', pe:34.15, fwdPe:30.0, segment:'Network Security',
+      hist:{2009:22.6,2010:62.3,2011:57.4,2012:52.5,2013:73.7,2014:204.3,2015:null,2016:null,2017:null,2018:36.7,2019:56.2,2020:51.2,2021:98.5,2022:46.1,2023:40.1,2024:41.8,2025:34.15} },
+    { name:'Palo Alto Networks', ticker:'PANW', region:'Americas', cap:'$115B', pe:93.76, fwdPe:55.0, segment:'Platform / Cloud',
+      hist:{2023:195.3,2024:44.6,2025:93.76} },
+    { name:'Okta', ticker:'OKTA', region:'Americas', cap:'$13B', pe:57.21, fwdPe:null, segment:'Identity & Access',
+      hist:{2025:57.21} },
+    { name:'Qualys', ticker:'QLYS', region:'Americas', cap:'$3B', pe:15.34, fwdPe:null, segment:'Vulnerability Mgmt',
+      hist:{2014:46.6,2015:78.8,2016:63.3,2017:58.8,2018:54.6,2019:49.6,2020:54.2,2021:77.5,2022:41.0,2023:48.7,2024:30.2,2025:15.34} },
+    { name:'Gen Digital (Norton)', ticker:'GEN', region:'Americas', cap:'$12B', pe:20.84, fwdPe:null, segment:'Consumer Security',
+      hist:{2015:18.7,2016:null,2017:null,2018:18.0,2019:null,2020:3.0,2021:23.3,2022:19.1,2023:8.0,2024:23.6,2025:20.84} },
+    { name:'Akamai Technologies', ticker:'AKAM', region:'Americas', cap:'$14B', pe:31.14, fwdPe:null, segment:'CDN / Security',
+      hist:{2015:29.6,2016:36.6,2017:50.4,2018:34.7,2019:29.8,2020:31.2,2021:29.8,2022:25.9,2023:33.6,2024:29.3,2025:31.14} },
+    { name:'VeriSign', ticker:'VRSN', region:'Americas', cap:'$25B', pe:31.42, fwdPe:null, segment:'DNS / Infrastructure',
+      hist:{2015:31.0,2016:22.2,2017:31.1,2018:31.2,2019:37.4,2020:30.6,2021:36.3,2022:32.9,2023:26.1,2024:25.9,2025:31.42} },
+    { name:'Rapid7', ticker:'RPD', region:'Americas', cap:'$389M', pe:16.39, fwdPe:null, segment:'Vulnerability Mgmt',
+      hist:{2024:24.5,2025:16.39} },
+    // ── Loss-making public (GAAP) ───────────────────────────────────────
+    { name:'CrowdStrike', ticker:'CRWD', region:'Americas', cap:'$108B', pe:null, fwdPe:90.0, segment:'Endpoint / Cloud', notes:'GAAP loss-making; fwd P/E ~90x',
+      hist:{} },
+    { name:'Cloudflare', ticker:'NET', region:'Americas', cap:'$71B', pe:null, fwdPe:null, segment:'Network / SASE', notes:'GAAP loss-making',
+      hist:{} },
+    { name:'Zscaler', ticker:'ZS', region:'Americas', cap:'$21B', pe:null, fwdPe:35.0, segment:'Cloud Security / SASE', notes:'GAAP loss-making; fwd P/E ~35x',
+      hist:{} },
+    { name:'SentinelOne', ticker:'S', region:'Americas', cap:'$5B', pe:null, fwdPe:null, segment:'Endpoint / AI Security', notes:'GAAP loss-making',
+      hist:{} },
+    { name:'Tenable Holdings', ticker:'TENB', region:'Americas', cap:'$2.3B', pe:null, fwdPe:null, segment:'Vulnerability Mgmt', notes:'GAAP loss-making',
+      hist:{} },
+    { name:'CyberArk Software', ticker:'CYBR', region:'Europe', cap:'$21B', pe:null, fwdPe:null, segment:'Identity / PAM', notes:'GAAP loss-making; acquired by PANW (deal close pending)',
+      hist:{} },
+    // ── Private companies ──────────────────────────────────────────────
+    { name:'Lacework', ticker:null, region:'Americas', cap:'~$8.3B val.', pe:null, fwdPe:null, segment:'Cloud Security', notes:'Private; ~$8.3B last valuation (2021 peak)',
+      hist:{} },
+    { name:'Netskope', ticker:null, region:'Americas', cap:'~$7.5B val.', pe:null, fwdPe:null, segment:'SASE / Cloud', notes:'Private; ~$7.5B valuation',
+      hist:{} },
+    { name:'Snyk', ticker:null, region:'Europe', cap:'~$7.4B val.', pe:null, fwdPe:null, segment:'Developer Security', notes:'Private (UK); ~$7.4B valuation',
+      hist:{} },
+    { name:'1Password', ticker:null, region:'Americas', cap:'~$6.8B val.', pe:null, fwdPe:null, segment:'Identity / Password Mgmt', notes:'Private (Canada); ~$6.8B valuation',
+      hist:{} },
+    { name:'Arctic Wolf', ticker:null, region:'Americas', cap:'~$4.3B val.', pe:null, fwdPe:null, segment:'Managed Detection & Response', notes:'Private; ~$4.3B valuation',
+      hist:{} },
+  ]
+};
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CHART DEFAULTS
+═══════════════════════════════════════════════════════════════════════ */
+Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--color-text-muted').trim() || '#8b949e';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 11;
+
+function getColor(key) {
+  return getComputedStyle(document.documentElement).getPropertyValue(key).trim();
+}
+const C = {
+  accent: '#388bfd', green: '#3fb950', red: '#f85149',
+  yellow: '#d29922', purple: '#a371f7', orange: '#f0883e',
+  muted: '#8b949e', border: '#30363d',
+};
+const PALETTE = ['#388bfd','#3fb950','#d29922','#a371f7','#f0883e','#f85149','#58a6ff','#7ee787','#ffa657','#bc8cff'];
+
+function baseLineOpts(title) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: true, position: 'top', labels: { boxWidth: 10, padding: 12, font: { size: 10 } } },
+      tooltip: {
+        backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1,
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(1)+'x' : 'N/A'}` }
+      }
+    },
+    scales: {
+      x: { grid: { color: '#21262d' }, ticks: { maxRotation: 45, font: { size: 10 } } },
+      y: {
+        grid: { color: '#21262d' },
+        ticks: { callback: v => v+'x', font: { size: 10 } },
+        title: { display: true, text: 'P/E Ratio', font: { size: 10 } }
+      }
+    }
+  };
+}
+
+function baseBarOpts() {
+  return {
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1,
+        callbacks: { label: ctx => ` ${ctx.parsed.x != null ? ctx.parsed.x.toFixed(1)+'x' : 'N/A'}` }
+      }
+    },
+    scales: {
+      x: { grid: { color: '#21262d' }, ticks: { callback: v => v+'x', font: { size: 10 } } },
+      y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+    }
+  };
+}
+
+function buildHistSeries(companies, years) {
+  return companies.map((co, i) => ({
+    label: co.ticker,
+    data: years.map(y => co.hist[y] ?? null),
+    borderColor: PALETTE[i % PALETTE.length],
+    backgroundColor: 'transparent',
+    tension: 0.35, pointRadius: 2, borderWidth: 1.8,
+    spanGaps: false
+  }));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CHART BUILDERS
+═══════════════════════════════════════════════════════════════════════ */
+
+// helper: compute 5th-95th percentile cap for a set of values
+function pctileCap(datasets, years, pct) {
+  const all = [];
+  datasets.forEach(ds => years.forEach((y,i) => { const v = ds.data[i]; if (v != null && v > 0) all.push(v); }));
+  if (!all.length) return 60;
+  all.sort((a,b)=>a-b);
+  return all[Math.floor(all.length * pct)] || 60;
+}
+
+// BANKS TREND — all companies with history, clipped y-axis
+(function() {
+  const cos = BANKS_DATA.companies.filter(c => Object.keys(c.hist).length > 1);
+  const datasets = buildHistSeries(cos, YEARS);
+  const cap = Math.ceil(pctileCap(datasets, YEARS, 0.95) / 5) * 5;
+  const opts = baseLineOpts();
+  opts.scales.y.max = cap;
+  opts.scales.y.min = 0;
+  opts.plugins.annotation = {}; // no annotation plugin needed
+  new Chart(document.getElementById('banks-trend-chart'), {
+    type: 'line',
+    data: { labels: YEARS.map(String), datasets },
+    options: opts
+  });
+})();
+
+// BANKS CURRENT BAR
+(function() {
+  const cos = BANKS_DATA.companies;
+  const vals = cos.map(c => c.pe);
+  const colors = vals.map(v => v == null ? C.muted : v > 20 ? C.yellow : v > 0 ? C.accent : C.red);
+  new Chart(document.getElementById('banks-bar-chart'), {
+    type: 'bar',
+    data: { labels: cos.map(c => c.ticker), datasets: [{ data: vals, backgroundColor: colors, borderRadius: 4, barThickness: 14 }] },
+    options: { ...baseBarOpts(), indexAxis: 'y' }
+  });
+})();
+
+// BANKS REGION TREND
+(function() {
+  const yrKeys = YEARS5;
+  function regionAvg(region, year) {
+    const vals = BANKS_DATA.companies.filter(c => c.region === region).map(c => c.hist[year]).filter(v => v != null && v > 0 && v < 60);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+  }
+  new Chart(document.getElementById('banks-region-trend'), {
+    type: 'line',
+    data: {
+      labels: yrKeys.map(String),
+      datasets: [
+        { label:'Americas', data: yrKeys.map(y=>regionAvg('Americas',y)), borderColor:C.accent, backgroundColor:'transparent', tension:0.35, pointRadius:3, borderWidth:2 },
+        { label:'Europe',   data: yrKeys.map(y=>regionAvg('Europe',y)),   borderColor:C.purple, backgroundColor:'transparent', tension:0.35, pointRadius:3, borderWidth:2 },
+        { label:'APAC',     data: yrKeys.map(y=>regionAvg('APAC',y)),     borderColor:C.green,  backgroundColor:'transparent', tension:0.35, pointRadius:3, borderWidth:2 },
+      ]
+    },
+    options: baseLineOpts()
+  });
+})();
+
+// BANKS REGION MINI CHARTS
+function miniBar(canvasId, labels, data) {
+  new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: PALETTE, borderRadius: 3, barThickness: 14 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth:1, callbacks:{label:ctx=>` ${ctx.parsed.x!=null?ctx.parsed.x.toFixed(1)+'x':'N/A'}`} } },
+      scales: { x: { grid: { color:'#21262d' }, ticks:{callback:v=>v+'x',font:{size:9}} }, y:{grid:{display:false},ticks:{font:{size:9}}} }
+    }
+  });
+}
+miniBar('banks-rga-chart', ['JPM','BAC','GS','WFC','C'], [14.84,13.31,16.62,12.56,15.99]);
+miniBar('banks-rge-chart', ['HSBC','DB','BCS','UBS'], [15.09,9.11,10.26,18.10]);
+miniBar('banks-rgap-chart', ['Maybank'], [12.73]);
+
+// FINTECHS TREND — all companies with >=2 data points, clipped axis
+(function() {
+  const yrKeys = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+  const cos = FINTECHS_DATA.companies.filter(c => {
+    const pts = yrKeys.filter(y => c.hist[y] != null && c.hist[y] > 0).length;
+    return pts >= 2;
+  });
+  const datasets = buildHistSeries(cos, yrKeys);
+  const cap = Math.ceil(pctileCap(datasets, yrKeys, 0.90) / 10) * 10;
+  const opts = baseLineOpts();
+  opts.scales.y.max = cap;
+  opts.scales.y.min = 0;
+  new Chart(document.getElementById('fin-trend-chart'), {
+    type: 'line',
+    data: { labels: yrKeys.map(String), datasets },
+    options: opts
+  });
+})();
+
+// FINTECHS BAR — all profitable
+(function() {
+  const profitable = FINTECHS_DATA.companies.filter(c => c.pe != null && c.pe > 0 && c.pe < 150);
+  profitable.sort((a,b) => (b.pe||0)-(a.pe||0));
+  const vals = profitable.map(c=>c.pe);
+  const colors = vals.map(v => v > 80 ? C.orange : v > 50 ? C.yellow : v > 30 ? C.accent : C.green);
+  new Chart(document.getElementById('fin-bar-chart'), {
+    type: 'bar',
+    data: { labels: profitable.map(c=>c.ticker), datasets: [{ data:vals, backgroundColor:colors, borderRadius:4, barThickness:13 }] },
+    options: { ...baseBarOpts(), indexAxis:'y' }
+  });
+})();
+
+// FINTECHS REGION MINIS
+miniBar('fin-rga-chart', ['PYPL','COIN','INTU','FOUR','WEX','RELY'], [9.21,44.80,25.19,44.87,20.72,63.32]);
+miniBar('fin-rge-chart', ['ADYEY','WISE','ETOR','GLBE'], [28.82,29.35,16.74,86.44]);
+miniBar('fin-rgap-chart', ['NU','SE','GRAB'], [26.60,35.87,67.0]);
+
+// TELECOM INT TREND — all companies with >=2 data points, clipped axis
+(function() {
+  const yrKeys = YEARS_SHORT;
+  const cos = TINT_DATA.companies.filter(c => {
+    const pts = yrKeys.filter(y => c.hist[y] != null && c.hist[y] > 0).length;
+    return pts >= 2;
+  });
+  const datasets = buildHistSeries(cos, yrKeys);
+  const cap = Math.ceil(pctileCap(datasets, yrKeys, 0.92) / 5) * 5;
+  const opts = baseLineOpts();
+  opts.scales.y.max = cap;
+  opts.scales.y.min = 0;
+  new Chart(document.getElementById('tint-trend-chart'), {
+    type: 'line',
+    data: { labels: yrKeys.map(String), datasets },
+    options: opts
+  });
+})();
+
+// TELECOM INT BAR
+(function() {
+  const valid = TINT_DATA.companies.filter(c => c.pe != null && c.pe > 0 && c.pe < 130);
+  valid.sort((a,b)=>(b.pe||0)-(a.pe||0));
+  const vals = valid.map(c=>c.pe);
+  const colors = vals.map(v => v > 40 ? C.orange : v > 20 ? C.yellow : v > 10 ? C.accent : C.green);
+  new Chart(document.getElementById('tint-bar-chart'), {
+    type:'bar',
+    data: { labels: valid.map(c=>c.ticker), datasets: [{data:vals, backgroundColor:colors, borderRadius:4, barThickness:13}] },
+    options: {...baseBarOpts(), indexAxis:'y'}
+  });
+})();
+
+// TELECOM INT REGION MINIS
+miniBar('tint-rga-chart', ['T','VZ','CMCSA','BCE','RCI','AMX'], [8.80,11.52,5.45,4.93,3.63,16.62]);
+miniBar('tint-rge-chart', ['DTEGY','BTGOF','SCMN','TELNY','VEON'], [14.82,22.31,26.99,20.51,7.26]);
+miniBar('tint-rgap-chart', ['Singtel','Axiata','NTT','KDDI','SoftBank','SKM','Telstra','TLKM'], [13.14,19.68,12.26,14.33,19.92,28.4,26.65,14.18]);
+
+// TELECOM MOB TREND — all companies with >=2 data points, clipped axis
+(function() {
+  const yrKeys = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+  const cos = TMOB_DATA.companies.filter(c => {
+    const pts = yrKeys.filter(y => c.hist[y] != null && c.hist[y] > 0).length;
+    return pts >= 2;
+  });
+  const datasets = buildHistSeries(cos, yrKeys);
+  const cap = Math.ceil(pctileCap(datasets, yrKeys, 0.95) / 5) * 5;
+  const opts = baseLineOpts();
+  opts.scales.y.max = cap;
+  opts.scales.y.min = 0;
+  new Chart(document.getElementById('tmob-trend-chart'), {
+    type:'line',
+    data: { labels: yrKeys.map(String), datasets },
+    options: opts
+  });
+})();
+
+// TELECOM MOB BAR
+(function() {
+  const valid = TMOB_DATA.companies.filter(c=>c.pe!=null&&c.pe>0&&c.pe<80);
+  valid.sort((a,b)=>(b.pe||0)-(a.pe||0));
+  const vals = valid.map(c=>c.pe);
+  const colors = vals.map(v=>v>40?C.orange:v>25?C.yellow:v>10?C.accent:C.green);
+  new Chart(document.getElementById('tmob-bar-chart'), {
+    type:'bar',
+    data: {labels:valid.map(c=>c.ticker), datasets:[{data:vals, backgroundColor:colors, borderRadius:4, barThickness:14}]},
+    options:{...baseBarOpts(), indexAxis:'y'}
+  });
+})();
+
+// TELECOM MOB REGION MINIS
+miniBar('tmob-rga-chart', ['TMUS','TIGO'], [20.28,10.45]);
+miniBar('tmob-rgap-chart', ['Airtel','Maxis','TKC','Indosat','True','PLDT'], [36.39,18.30,14.09,12.0,52.22,9.02]);
+miniBar('tmob-rga2-chart', ['MTN'], [18.29]);
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TABLE RENDERERS
+═══════════════════════════════════════════════════════════════════════ */
+function peClass(v) {
+  if (v == null) return 'pe-na';
+  if (v < 0) return 'pe-negative';
+  if (v > 80) return 'pe-extreme';
+  if (v > 40) return 'pe-high';
+  return 'pe-positive';
+}
+function peDisplay(v) {
+  if (v == null) return '—';
+  return v.toFixed(1) + 'x';
+}
+function regionPill(r) {
+  const map = { Americas:'pill-americas', Europe:'pill-europe', APAC:'pill-apac', Africa:'pill-africa' };
+  return `<span class="pill ${map[r]||'pill-americas'}">${r}</span>`;
+}
+function sparkBars(hist) {
+  const vals = Object.entries(hist).filter(([y,v])=>+y>=2020&&v!=null&&v>0&&v<150).map(([,v])=>v);
+  if (!vals.length) return '<span style="color:var(--color-text-faint);font-size:10px">No data</span>';
+  const mx = Math.max(...vals);
+  return `<div class="sparkbar-wrap">${vals.map(v=>`<div class="sparkbar" style="height:${Math.max(4,Math.round(v/mx*26))}px"></div>`).join('')}</div>`;
+}
+
+function renderTable(tbodyId, companies) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = '';
+  companies.forEach(c => {
+    const tr = document.createElement('tr');
+    tr.dataset.region = c.region;
+    tr.dataset.name = (c.name + ' ' + c.ticker).toLowerCase();
+    tr.innerHTML = `
+      <td><div class="td-name">${c.name}</div><div class="td-ticker">${c.ticker}</div></td>
+      <td class="td-num"><span class="${peClass(c.pe)}">${peDisplay(c.pe)}</span></td>
+      <td class="td-num"><span class="${peClass(c.fwdPe)}">${peDisplay(c.fwdPe)}</span></td>
+      <td class="td-num" style="color:var(--color-text-muted)">${c.cap||'—'}</td>
+      <td class="td-region">${regionPill(c.region)}</td>
+      <td>${c.notes ? `<span style="font-size:10px;color:var(--color-text-muted)">${c.notes}</span>` : sparkBars(c.hist)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   OVERVIEW CHARTS
+═══════════════════════════════════════════════════════════════════════ */
+
+// helper: sector median P/E for a given year
+function sectorMedian(companies, year, maxPe) {
+  const vals = companies
+    .map(c => c.hist && c.hist[year] != null ? c.hist[year] : null)
+    .filter(v => v != null && v > 0 && v < (maxPe || 9999));
+  if (!vals.length) return null;
+  vals.sort((a,b)=>a-b);
+  const mid = Math.floor(vals.length/2);
+  return vals.length % 2 ? vals[mid] : (vals[mid-1]+vals[mid])/2;
+}
+// current pe median
+function currentMedian(companies, maxPe) {
+  const vals = companies.map(c=>c.pe).filter(v=>v!=null&&v>0&&v<(maxPe||9999));
+  if (!vals.length) return null;
+  vals.sort((a,b)=>a-b);
+  const mid=Math.floor(vals.length/2);
+  return vals.length%2?vals[mid]:(vals[mid-1]+vals[mid])/2;
+}
+
+// OV bar chart — sector median comparison
+(function() {
+  const sectors = [
+    { label:'🏦 Banks', color:'#388bfd', median: currentMedian(BANKS_DATA.companies, 60) },
+    { label:'💳 Fintechs', color:'#3fb950', median: currentMedian(FINTECHS_DATA.companies, 150) },
+    { label:'📡 Telecom Integrated', color:'#d29922', median: currentMedian(TINT_DATA.companies, 80) },
+    { label:'📱 Telecom Mobile', color:'#a371f7', median: currentMedian(TMOB_DATA.companies, 80) },
+    { label:'🔐 Cybersecurity', color:'#e05d44', median: currentMedian(CYBERSEC_DATA.companies, 150) },
+  ];
+  new Chart(document.getElementById('ov-bar-chart'), {
+    type:'bar',
+    data: {
+      labels: sectors.map(s=>s.label),
+      datasets: [{
+        label:'Median P/E (TTM)',
+        data: sectors.map(s=>s.median ? +s.median.toFixed(1) : null),
+        backgroundColor: sectors.map(s=>s.color),
+        borderRadius: 6, barThickness: 60,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:false},
+        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1, callbacks:{label:ctx=>` ${ctx.parsed.y.toFixed(1)}x median P/E`}}
+      },
+      scales: {
+        x: {grid:{color:'#21262d'}, ticks:{font:{size:12}}},
+        y: {grid:{color:'#21262d'}, ticks:{callback:v=>v+'x', font:{size:11}}, min:0, suggestedMax:45,
+          title:{display:true, text:'Median P/E (TTM)', font:{size:11}}}
+      }
+    }
+  });
+})();
+
+// OV range chart — min/median/max per sector as floating bars
+(function() {
+  function sectorStats(cos, maxPe) {
+    const vals = cos.map(c=>c.pe).filter(v=>v!=null&&v>0&&v<(maxPe||999));
+    if (!vals.length) return {min:0,med:0,max:0};
+    vals.sort((a,b)=>a-b);
+    const mid=Math.floor(vals.length/2);
+    const med=vals.length%2?vals[mid]:(vals[mid-1]+vals[mid])/2;
+    return {min:vals[0], med:+med.toFixed(1), max:vals[vals.length-1]};
+  }
+  const sectors = [
+    {label:'🏦 Banks', color:'#388bfd', stats: sectorStats(BANKS_DATA.companies,60)},
+    {label:'💳 Fintechs', color:'#3fb950', stats: sectorStats(FINTECHS_DATA.companies,150)},
+    {label:'📡 Telecom Int.', color:'#d29922', stats: sectorStats(TINT_DATA.companies,80)},
+    {label:'📱 Telecom Mob.', color:'#a371f7', stats: sectorStats(TMOB_DATA.companies,80)},
+    {label:'🔐 Cybersec.', color:'#e05d44', stats: sectorStats(CYBERSEC_DATA.companies,150)},
+  ];
+  new Chart(document.getElementById('ov-range-chart'), {
+    type:'bar',
+    data: {
+      labels: sectors.map(s=>s.label),
+      datasets: [
+        { label:'Range (min–max)', data: sectors.map(s=>[s.stats.min, s.stats.max]),
+          backgroundColor: sectors.map(s=>s.color+'40'), borderColor: sectors.map(s=>s.color),
+          borderWidth:1.5, borderRadius:4, barThickness:32 },
+        { label:'Median', data: sectors.map(s=>[s.stats.med-0.3, s.stats.med+0.3]),
+          backgroundColor: sectors.map(s=>s.color), borderColor:'transparent',
+          borderWidth:0, barThickness:32 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:true, position:'top', labels:{boxWidth:10, font:{size:10}}},
+        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,
+          callbacks:{label:ctx=>{
+            const s=sectors[ctx.dataIndex].stats;
+            return ctx.datasetIndex===0?` Range: ${s.min.toFixed(1)}x – ${s.max.toFixed(1)}x`:` Median: ${s.med}x`;
+          }}}
+      },
+      scales: {
+        x:{grid:{color:'#21262d'}, ticks:{font:{size:10}}},
+        y:{grid:{color:'#21262d'}, ticks:{callback:v=>v+'x', font:{size:10}}, min:0, suggestedMax:100}
+      }
+    }
+  });
+})();
+
+// OV trend chart — sector medians over 2015-2025
+(function() {
+  const yrKeys = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+  new Chart(document.getElementById('ov-trend-chart'), {
+    type:'line',
+    data: {
+      labels: yrKeys.map(String),
+      datasets: [
+        { label:'🏦 Banks', borderColor:'#388bfd', backgroundColor:'transparent',
+          data: yrKeys.map(y=>{ const m=sectorMedian(BANKS_DATA.companies,y,60); return m?+m.toFixed(1):null; }),
+          tension:0.35, pointRadius:3, borderWidth:2 },
+        { label:'💳 Fintechs', borderColor:'#3fb950', backgroundColor:'transparent',
+          data: yrKeys.map(y=>{ const m=sectorMedian(FINTECHS_DATA.companies,y,150); return m?+m.toFixed(1):null; }),
+          tension:0.35, pointRadius:3, borderWidth:2 },
+        { label:'📡 Telecom Int.', borderColor:'#d29922', backgroundColor:'transparent',
+          data: yrKeys.map(y=>{ const m=sectorMedian(TINT_DATA.companies,y,80); return m?+m.toFixed(1):null; }),
+          tension:0.35, pointRadius:3, borderWidth:2 },
+        { label:'📱 Telecom Mob.', borderColor:'#a371f7', backgroundColor:'transparent',
+          data: yrKeys.map(y=>{ const m=sectorMedian(TMOB_DATA.companies,y,80); return m?+m.toFixed(1):null; }),
+          tension:0.35, pointRadius:3, borderWidth:2 },
+        { label:'🔐 Cybersecurity', borderColor:'#e05d44', backgroundColor:'transparent',
+          data: yrKeys.map(y=>{ const m=sectorMedian(CYBERSEC_DATA.companies,y,150); return m?+m.toFixed(1):null; }),
+          tension:0.35, pointRadius:3, borderWidth:2 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins: {
+        legend:{display:true, position:'top', labels:{boxWidth:10, font:{size:10}}},
+        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,
+          callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(1)+'x':'N/A'}`}}
+      },
+      scales: {
+        x:{grid:{color:'#21262d'}, ticks:{font:{size:10}}},
+        y:{grid:{color:'#21262d'}, ticks:{callback:v=>v+'x', font:{size:10}}, min:0, suggestedMax:60,
+          title:{display:true, text:'Median P/E', font:{size:10}}}
+      }
+    }
+  });
+})();
+
+// OV dot chart — all companies current P/E as scatter
+(function() {
+  const SECTOR_X = {banks:0, fintechs:1, 'telecom-int':2, 'telecom-mob':3, cybersec:4};
+  const SECTOR_COLORS = {banks:'#388bfd', fintechs:'#3fb950', 'telecom-int':'#d29922', 'telecom-mob':'#a371f7', cybersec:'#e05d44'};
+  const CAP = 100;
+  function buildDots(cos, sector) {
+    return cos
+      .filter(c => c.pe != null && c.pe > 0)
+      .map(c => ({
+        x: SECTOR_X[sector] + (Math.random()-0.5)*0.4,
+        y: Math.min(c.pe, CAP),
+        label: c.ticker,
+        actualPe: c.pe,
+        capped: c.pe > CAP
+      }));
+  }
+  const allDots = [
+    ...buildDots(BANKS_DATA.companies,'banks').map(d=>({...d,color:SECTOR_COLORS.banks})),
+    ...buildDots(FINTECHS_DATA.companies,'fintechs').map(d=>({...d,color:SECTOR_COLORS.fintechs})),
+    ...buildDots(TINT_DATA.companies,'telecom-int').map(d=>({...d,color:SECTOR_COLORS['telecom-int']})),
+    ...buildDots(TMOB_DATA.companies,'telecom-mob').map(d=>({...d,color:SECTOR_COLORS['telecom-mob']})),
+    ...buildDots(CYBERSEC_DATA.companies,'cybersec').map(d=>({...d,color:SECTOR_COLORS.cybersec})),
+  ];
+  new Chart(document.getElementById('ov-dot-chart'), {
+    type:'scatter',
+    data: { datasets: [{
+      data: allDots,
+      backgroundColor: allDots.map(d=>d.color+'cc'),
+      pointRadius: 7, pointHoverRadius: 9,
+    }]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:false},
+        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,
+          callbacks:{label:ctx=>{
+            const d=allDots[ctx.dataIndex];
+            return ` ${d.label}: ${d.capped?'>'+CAP:d.actualPe.toFixed(1)}x${d.capped?' (capped)':''}`;
+          }}}
+      },
+      scales: {
+        x:{
+          grid:{color:'#21262d'},
+          min:-0.6, max:4.6,
+          ticks:{callback:v=>(['Banks','Fintechs','Telecom Int.','Telecom Mob.','Cybersec.'][Math.round(v)]||''), stepSize:1, font:{size:11}}
+        },
+        y:{
+          grid:{color:'#21262d'}, ticks:{callback:v=>v+'x', font:{size:10}},
+          min:0, max:CAP,
+          title:{display:true, text:'P/E Ratio (TTM) · capped at 100x', font:{size:10}}
+        }
+      }
+    }
+  });
+})();
+
+renderTable('banks-tbody', BANKS_DATA.companies);
+renderTable('fin-tbody', FINTECHS_DATA.companies);
+renderTable('tint-tbody', TINT_DATA.companies);
+renderTable('tmob-tbody', TMOB_DATA.companies);
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CYBERSECURITY CHARTS
+═══════════════════════════════════════════════════════════════════════ */
+
+// CYBERSEC TREND — profitable cohort only (loss-making excluded)
+(function() {
+  const TREND_COS = CYBERSEC_DATA.companies.filter(c => c.ticker && c.pe != null && c.pe > 0);
+  const yrs = [2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+  const colors = ['#388bfd','#3fb950','#e05d44','#d29922','#a371f7','#58a6ff','#ffa657','#7ee787'];
+  const datasets = TREND_COS.map((c,i) => ({
+    label: c.ticker,
+    borderColor: colors[i % colors.length],
+    backgroundColor: 'transparent',
+    data: yrs.map(y => (c.hist && c.hist[y] != null && c.hist[y] > 0 && c.hist[y] < 250) ? c.hist[y] : null),
+    tension: 0.35, pointRadius: 3, borderWidth: 2, spanGaps: false,
+  })).filter(ds => ds.data.filter(v=>v!=null).length >= 2);
+  // percentile cap: 90th of all values
+  const allVals = datasets.flatMap(ds=>ds.data.filter(v=>v!=null)).sort((a,b)=>a-b);
+  const cap = allVals.length ? Math.ceil(allVals[Math.floor(allVals.length*0.90)] / 10) * 10 : 120;
+  new Chart(document.getElementById('cybersec-trend-chart'), {
+    type:'line',
+    data: { labels: yrs.map(String), datasets },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins: {
+        legend:{display:true, position:'top', labels:{boxWidth:10,font:{size:10}}},
+        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,
+          callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(1)+'x':'N/A'}`}}
+      },
+      scales: {
+        x:{grid:{color:'#21262d'}, ticks:{font:{size:10}}},
+        y:{grid:{color:'#21262d'}, ticks:{callback:v=>v+'x',font:{size:10}}, min:0, max:cap,
+          title:{display:true,text:'P/E Ratio (TTM)',font:{size:10}}}
+      }
+    }
+  });
+})();
+
+// CYBERSEC BAR — current P/E snapshot (profitable only)
+(function() {
+  const profitable = CYBERSEC_DATA.companies.filter(c => c.pe != null && c.pe > 0 && c.pe < 200);
+  const colors = profitable.map(c => c.pe > 80 ? '#f0883e' : c.pe > 40 ? '#d29922' : '#3fb950');
+  new Chart(document.getElementById('cybersec-bar-chart'), {
+    type:'bar',
+    data: {
+      labels: profitable.map(c => c.ticker || c.name.slice(0,8)),
+      datasets: [{ label:'P/E (TTM)', data: profitable.map(c=>c.pe), backgroundColor: colors, borderRadius:4, barThickness:28 }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,
+          callbacks:{label:ctx=>` ${ctx.parsed.x.toFixed(1)}x`}}},
+      scales:{
+        x:{grid:{color:'#21262d'},ticks:{callback:v=>v+'x',font:{size:10}},min:0,suggestedMax:100},
+        y:{grid:{display:false},ticks:{font:{size:10}}}
+      }
+    }
+  });
+})();
+
+// CYBERSEC REGION mini — Americas vs Europe
+(function() {
+  const americas = CYBERSEC_DATA.companies.filter(c=>c.region==='Americas'&&c.pe!=null&&c.pe>0&&c.pe<200);
+  const europe = CYBERSEC_DATA.companies.filter(c=>c.region==='Europe'&&c.pe!=null&&c.pe>0&&c.pe<200);
+  const med = arr=>{ if(!arr.length)return null; const s=arr.map(c=>c.pe).sort((a,b)=>a-b); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+  new Chart(document.getElementById('cybersec-region-chart'), {
+    type:'bar',
+    data:{
+      labels:['Americas','Europe / Israel'],
+      datasets:[{label:'Median P/E',data:[med(americas),med(europe)],backgroundColor:['#388bfd','#3fb950'],borderRadius:6,barThickness:50}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,callbacks:{label:ctx=>` ${ctx.parsed.y.toFixed(1)}x median`}}},
+      scales:{x:{grid:{color:'#21262d'},ticks:{font:{size:11}}},y:{grid:{color:'#21262d'},ticks:{callback:v=>v+'x',font:{size:10}},min:0,suggestedMax:50}}
+    }
+  });
+})();
+
+// CYBERSEC Regional Americas bar
+(function() {
+  const cos = CYBERSEC_DATA.companies.filter(c=>c.region==='Americas'&&c.pe!=null&&c.pe>0&&c.pe<200);
+  new Chart(document.getElementById('cybersec-region-americas'), {
+    type:'bar', data:{labels:cos.map(c=>c.ticker),datasets:[{label:'P/E TTM',data:cos.map(c=>c.pe),backgroundColor:'#388bfd',borderRadius:4,barThickness:24}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,callbacks:{label:ctx=>` ${ctx.parsed.x.toFixed(1)}x`}}},
+      scales:{x:{grid:{color:'#21262d'},ticks:{callback:v=>v+'x',font:{size:10}},min:0,suggestedMax:100},y:{grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+})();
+
+// CYBERSEC Regional Europe bar
+(function() {
+  const cos = CYBERSEC_DATA.companies.filter(c=>c.region==='Europe'&&c.pe!=null&&c.pe>0&&c.pe<200);
+  new Chart(document.getElementById('cybersec-region-eu'), {
+    type:'bar', data:{labels:cos.map(c=>c.ticker||c.name),datasets:[{label:'P/E TTM',data:cos.map(c=>c.pe),backgroundColor:'#3fb950',borderRadius:4,barThickness:24}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,callbacks:{label:ctx=>` ${ctx.parsed.x.toFixed(1)}x`}}},
+      scales:{x:{grid:{color:'#21262d'},ticks:{callback:v=>v+'x',font:{size:10}},min:0,suggestedMax:30},y:{grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+})();
+
+// CYBERSEC private companies bar chart (valuation reference)
+(function() {
+  const privates = [
+    {name:'Lacework', val:8.3},
+    {name:'Netskope', val:7.5},
+    {name:'Snyk', val:7.4},
+    {name:'1Password', val:6.8},
+    {name:'Arctic Wolf', val:4.3},
+  ];
+  new Chart(document.getElementById('cybersec-private-chart'), {
+    type:'bar',
+    data:{labels:privates.map(c=>c.name),datasets:[{label:'Valuation ($B)',data:privates.map(c=>c.val),backgroundColor:'#e05d44bb',borderRadius:4,barThickness:32}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,callbacks:{label:ctx=>` ~$${ctx.parsed.y}B valuation`}}},
+      scales:{x:{grid:{color:'#21262d'},ticks:{font:{size:10}}},y:{grid:{color:'#21262d'},ticks:{callback:v=>'$'+v+'B',font:{size:10}},min:0,suggestedMax:10,title:{display:true,text:'Last VC Valuation ($B)',font:{size:10}}}}}
+  });
+})();
+
+// Cybersec companies table with segment column
+(function(){
+  function renderCybersecTable(companies) {
+    const tbody = document.getElementById('cybersec-tbody');
+    tbody.innerHTML = '';
+    companies.forEach(c => {
+      const tr = document.createElement('tr');
+      tr.dataset.region = c.ticker ? c.region : 'Private';
+      tr.dataset.name = (c.name + ' ' + (c.ticker||'')).toLowerCase();
+      tr.innerHTML = `
+        <td><div class="td-name">${c.name}</div><div class="td-ticker">${c.ticker||'Private'}</div></td>
+        <td class="td-num"><span class="${peClass(c.pe)}">${peDisplay(c.pe)}</span></td>
+        <td class="td-num"><span class="${peClass(c.fwdPe)}">${peDisplay(c.fwdPe)}</span></td>
+        <td class="td-num" style="color:var(--color-text-muted)">${c.cap||'—'}</td>
+        <td class="td-region">${regionPill(c.region)}</td>
+        <td style="font-size:10px;color:var(--color-text-muted)">${c.segment||''}</td>
+        <td>${c.notes ? `<span style="font-size:10px;color:var(--color-text-muted)">${c.notes}</span>` : sparkBars(c.hist)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  renderCybersecTable(CYBERSEC_DATA.companies);
+
+  // search
+  document.getElementById('cybersec-search').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll('#cybersec-tbody tr').forEach(tr=>{tr.style.display=tr.dataset.name.includes(q)?'':'none';});
+  });
+
+  // filter buttons
+  document.querySelectorAll('#cybersec-companies .filter-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('#cybersec-companies .filter-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const f=btn.dataset.filter;
+      document.querySelectorAll('#cybersec-tbody tr').forEach(tr=>{
+        tr.style.display=(f==='all'||tr.dataset.region===f)?'':'none';
+      });
+    });
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SEARCH + FILTER
+═══════════════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.search-input').forEach(inp => {
+  inp.addEventListener('input', () => {
+    const q = inp.value.toLowerCase();
+    const target = inp.dataset.searchTarget;
+    document.querySelectorAll(`#${target} tbody tr`).forEach(tr => {
+      tr.style.display = tr.dataset.name.includes(q) ? '' : 'none';
+    });
+  });
+});
+
+document.querySelectorAll('[data-filter-region]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const region = btn.dataset.filterRegion;
+    const target = btn.dataset.filterTarget;
+    // toggle active
+    document.querySelectorAll(`[data-filter-target="${target}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll(`#${target} tbody tr`).forEach(tr => {
+      tr.style.display = (region === 'all' || tr.dataset.region === region) ? '' : 'none';
+    });
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TABS + VIEWS
+═══════════════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.sector-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sector-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.sector-section').forEach(s => s.style.display = 'none');
+    const sec = document.getElementById(tab.dataset.sector + '-section');
+    if (sec) sec.style.display = '';
+  });
+});
+
+document.querySelectorAll('.view-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.target;
+    const view = btn.dataset.view;
+    document.querySelectorAll(`[data-target="${target}"].view-btn`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll(`#${target}-section .view-panel`).forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(`${target}-${view}`);
+    if (panel) panel.classList.add('active');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THEME TOGGLE
+═══════════════════════════════════════════════════════════════════════ */
+(function() {
+  const btn = document.querySelector('[data-theme-toggle]');
+  const html = document.documentElement;
+  let theme = 'light';
+  html.setAttribute('data-theme', theme);
+  btn && btn.addEventListener('click', () => {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', theme);
+    btn.innerHTML = theme === 'dark'
+      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+    // Update chart colors after theme change
+    Chart.defaults.color = theme === 'dark' ? '#8b949e' : '#57606a';
+    Chart.instances && Object.values(Chart.instances).forEach(ch => ch.update());
+  });
+})();
+</script>
+<script data-pplx-inline-edit>
+(function(){
+  if(window===window.top)return;
+  function inlineAll(orig,clone){
+    if(orig.nodeType!==1)return;
+    try{
+      var cs=getComputedStyle(orig);
+      var t='';
+      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
+      clone.style.cssText=t;
+    }catch(e){}
+    var oc=orig.children,cc=clone.children;
+    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
+  }
+  function stripExternal(clone){
+    var imgs=clone.querySelectorAll('img');
+    for(var i=0;i<imgs.length;i++){
+      var s=imgs[i].getAttribute('src');
+      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
+    }
+    var all=clone.querySelectorAll('*');
+    for(var i=0;i<all.length;i++){
+      var st=all[i].style.cssText;
+      if(st&&st.indexOf('url(')>=0){
+        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
+      }
+    }
+  }
+  var scrollRaf=0;
+  function emitScroll(){
+    scrollRaf=0;
+    var x=window.scrollX||window.pageXOffset||0;
+    var y=window.scrollY||window.pageYOffset||0;
+    window.parent.postMessage({type:'INLINE_EDIT_SCROLL',scrollX:x,scrollY:y},'*');
+  }
+  window.addEventListener('scroll',function(){
+    if(scrollRaf)return;
+    scrollRaf=requestAnimationFrame(emitScroll);
+  },{passive:true,capture:true});
+  emitScroll();
+  window.addEventListener('message',function(e){
+    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
+    var scrollX=window.scrollX||window.pageXOffset||0;
+    var scrollY=window.scrollY||window.pageYOffset||0;
+    var w=window.innerWidth,h=window.innerHeight;
+    try{
+      var clone=document.documentElement.cloneNode(true);
+      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
+      for(var i=0;i<rm.length;i++){rm[i].remove();}
+      inlineAll(document.documentElement,clone);
+      stripExternal(clone);
+      var html=new XMLSerializer().serializeToString(clone);
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
+        +'<foreignObject width="100%" height="100%">'
+        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
+        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
+        +html+'</div></div></foreignObject></svg>';
+      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+      var img=new Image();
+      img.onload=function(){
+        var c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0);
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.onerror=function(){
+        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+      };
+      img.src=svgUrl;
+    }catch(err){
+      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
+    }
+  });
+})();
+</script></body>
+</html>
