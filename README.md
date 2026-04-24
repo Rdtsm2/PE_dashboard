@@ -7,10 +7,8 @@
 ## Live URL
 
 ```
-https://www.perplexity.ai/computer/a/valuscope-p-e-ratio-dashboard-zY9FtCqUTfC_J1UM6QyJlw
+https://rdtsm2.github.io/PE_dashboard/
 ```
-
-Asset ID: `cd8f45b4-2a94-4df0-bf27-550ce90c8997`
 
 ---
 
@@ -37,7 +35,7 @@ Covers:
 | Theming | CSS variables; light/dark toggle in header |
 | Default theme | **Light mode** (v4+) |
 | Data storage | All data embedded in JS objects inside `index.html` |
-| Deployment | Perplexity Computer `deploy_website()` → S3 static hosting |
+| Deployment | GitHub Pages (branch: `main`, root `/`) |
 
 The entire dashboard lives in a single file: `index.html`.
 
@@ -218,24 +216,15 @@ Find the company in the relevant `*_DATA` array and update the `pe` field.
 5. Update Overview tab: KPI card, bar chart dataset, range chart, trend line, dot chart axis labels, and comparison table column
 
 ### To redeploy:
-```
-deploy_website(
-  project_path="/home/user/workspace/pe-dashboard",
-  site_name="ValuScope — P/E Ratio Dashboard",
-  entry_point="index.html",
-  name="pe-dashboard",
-  should_validate=False
-)
-```
-Use `should_validate=False` to skip the automated validator (avoids false positives on data cards).
+Commit changes to `main` and push. GitHub Pages rebuilds automatically within ~1 minute.
 
 ---
 
 ## Local Development
 
 ```bash
-cd /home/user/workspace/pe-dashboard
-serve . -l 3000 --no-clipboard --single
+cd /path/to/PE_dashboard
+python -m http.server 3000
 # → http://localhost:3000
 ```
 
