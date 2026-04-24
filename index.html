@@ -1,10 +1,37 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ValuScope — P/E Ratio Dashboard</title>
-  <meta name="description" content="Interactive Price-to-Earnings dashboard tracking trailing and forward P/E ratios for global banks, fintechs, and telecoms." />
+  <meta name="description" content="Interactive Price-to-Earnings dashboard tracking trailing and forward P/E ratios for global banks, fintechs, telecoms, and cybersecurity." />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#0969da" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="ValuScope — P/E Ratio Dashboard" />
+  <meta property="og:description" content="Interactive Price-to-Earnings dashboard across banks, fintechs, telecoms, and cybersecurity." />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="ValuScope — P/E Ratio Dashboard" />
+  <meta name="twitter:description" content="Interactive Price-to-Earnings dashboard across banks, fintechs, telecoms, and cybersecurity." />
+
+  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28"><rect width="28" height="28" rx="6" fill="%23388bfd" opacity="0.15"/><path d="M4 20 L10 10 L14 16 L18 8 L24 20" stroke="%23388bfd" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="18" cy="8" r="2.5" fill="%23388bfd"/></svg>' />
+
+  <script>
+    // Apply theme before first paint to avoid flash
+    (function () {
+      try {
+        var saved = localStorage.getItem('valuscope-theme');
+        var theme = (saved === 'dark' || saved === 'light') ? saved
+          : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -23,6 +50,7 @@
       --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem;
       --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem;
       --radius-sm: 0.375rem; --radius-md: 0.5rem; --radius-lg: 0.75rem;
+      --radius-full: 9999px;
       --transition: 150ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -39,6 +67,7 @@
       --color-accent: #388bfd;
       --color-accent-hover: #58a6ff;
       --color-accent-dim: rgba(56,139,253,0.15);
+      --color-blue-dim: rgba(88,166,255,0.15);
       --color-green: #3fb950;
       --color-green-dim: rgba(63,185,80,0.15);
       --color-red: #f85149;
@@ -65,6 +94,7 @@
       --color-accent: #0969da;
       --color-accent-hover: #0550ae;
       --color-accent-dim: rgba(9,105,218,0.1);
+      --color-blue-dim: rgba(9,105,218,0.1);
       --color-green: #1a7f37;
       --color-green-dim: rgba(26,127,55,0.1);
       --color-red: #cf222e;
@@ -83,6 +113,12 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; overflow: hidden; }
     html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+    :focus { outline: none; }
+    :focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+    }
     body {
       font-family: var(--font-body);
       font-size: var(--text-sm);
@@ -593,22 +629,22 @@
     <div class="kpi-grid" id="banks-kpi">
       <div class="kpi-card">
         <div class="kpi-label">Sector Median P/E (TTM)</div>
-        <div class="kpi-value" id="banks-median">13.5x</div>
-        <div class="kpi-sub">10 companies (8 with history, 2 current-only)</div>
+        <div class="kpi-value" data-stat="median:banks"></div>
+        <div class="kpi-sub"><span data-stat="count:banks"></span> companies tracked</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Americas Avg P/E</div>
-        <div class="kpi-value">13.8x</div>
+        <div class="kpi-value" data-stat="region-mean:banks:Americas"></div>
         <div class="kpi-sub">JPM, BAC, GS, WFC, C</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Europe Avg P/E</div>
-        <div class="kpi-value">13.5x</div>
+        <div class="kpi-value" data-stat="region-mean:banks:Europe"></div>
         <div class="kpi-sub">HSBC, DB, BCS, UBS (DB: current P/E only)</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Asia-Pacific P/E</div>
-        <div class="kpi-value">12.7x</div>
+        <div class="kpi-value" data-stat="region-mean:banks:APAC"></div>
         <div class="kpi-sub">Maybank (Malaysia, current-only)</div>
       </div>
       <div class="kpi-card">
@@ -646,20 +682,20 @@
     <div id="banks-regional" class="view-panel">
       <div class="region-grid">
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count">5 companies</div></div>
-          <div class="region-avg" id="rba-avg">13.8x</div>
+          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count"><span data-stat="region-count:banks:Americas"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-mean:banks:Americas"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">JPMorgan, BofA, Goldman, Wells Fargo, Citigroup</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="banks-rga-chart"></canvas></div>
         </div>
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌍 Europe</div><div class="region-count">4 companies</div></div>
-          <div class="region-avg">13.5x</div>
+          <div class="region-header"><div class="region-name">🌍 Europe</div><div class="region-count"><span data-stat="region-count:banks:Europe"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-mean:banks:Europe"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">HSBC, Deutsche, Barclays, UBS</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="banks-rge-chart"></canvas></div>
         </div>
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌏 Asia-Pacific</div><div class="region-count">1 company</div></div>
-          <div class="region-avg">12.7x</div>
+          <div class="region-header"><div class="region-name">🌏 Asia-Pacific</div><div class="region-count"><span data-stat="region-count:banks:APAC"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-mean:banks:APAC"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">Maybank (Malaysia)</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="banks-rgap-chart"></canvas></div>
         </div>
@@ -716,27 +752,27 @@
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">Sector Median P/E (profitable)</div>
-        <div class="kpi-value">32.7x</div>
-        <div class="kpi-sub">27 public + 4 private tracked</div>
+        <div class="kpi-value" data-stat="median:fintechs:150"></div>
+        <div class="kpi-sub"><span data-stat="count:fintechs"></span> public + 4 private tracked</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Americas Median P/E</div>
-        <div class="kpi-value">35.1x</div>
+        <div class="kpi-value" data-stat="region-median:fintechs:Americas:150"></div>
         <div class="kpi-sub">PYPL, COIN, INTU, et al.</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Europe Median P/E</div>
-        <div class="kpi-value">29.1x</div>
+        <div class="kpi-value" data-stat="region-median:fintechs:Europe:150"></div>
         <div class="kpi-sub">ADYEY, WISE, ETOR, GLBE</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Asia-Pacific Median P/E</div>
-        <div class="kpi-value">36.1x</div>
+        <div class="kpi-value" data-stat="region-median:fintechs:APAC:150"></div>
         <div class="kpi-sub">NU, SE, GRAB</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Loss-making cos.</div>
-        <div class="kpi-value" style="color:var(--color-red)">4</div>
+        <div class="kpi-value" style="color:var(--color-red)" data-stat="lossmaking:fintechs"></div>
         <div class="kpi-sub">KLAR, CHYM + 2 others</div>
       </div>
     </div>
@@ -767,20 +803,20 @@
     <div id="fintechs-regional" class="view-panel">
       <div class="region-grid">
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count">16 companies</div></div>
-          <div class="region-avg">35.1x</div>
+          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count"><span data-stat="region-count:fintechs:Americas"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-median:fintechs:Americas:150"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">PYPL, HOOD, SOFI, AFRM, XYZ, COIN, INTU, TOST, DLO, RELY, UPST, LC, FOUR, WEX, DAVE, OPFI, NRDS, CHYM</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="fin-rga-chart"></canvas></div>
         </div>
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌍 Europe / Israel</div><div class="region-count">5 companies</div></div>
-          <div class="region-avg">29.1x</div>
+          <div class="region-header"><div class="region-name">🌍 Europe / Israel</div><div class="region-count"><span data-stat="region-count:fintechs:Europe"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-median:fintechs:Europe:150"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">ADYEY, WISE.L, KLAR, ETOR, GLBE</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="fin-rge-chart"></canvas></div>
         </div>
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌏 Asia-Pacific / EM</div><div class="region-count">4 companies</div></div>
-          <div class="region-avg">36.1x</div>
+          <div class="region-header"><div class="region-name">🌏 Asia-Pacific / EM</div><div class="region-count"><span data-stat="region-count:fintechs:APAC"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-median:fintechs:APAC:150"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">NU (Brazil), SE (Singapore), GRAB (Singapore)</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="fin-rgap-chart"></canvas></div>
         </div>
@@ -867,22 +903,22 @@
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">Sector Median P/E</div>
-        <div class="kpi-value">14.6x</div>
-        <div class="kpi-sub">20 cos. tracked</div>
+        <div class="kpi-value" data-stat="median:tint:80"></div>
+        <div class="kpi-sub"><span data-stat="count:tint"></span> cos. tracked</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Americas Median</div>
-        <div class="kpi-value">5.2x</div>
+        <div class="kpi-value" data-stat="region-median:tint:Americas:80"></div>
         <div class="kpi-sub">T, VZ, CMCSA, BCE, RCI, AMX</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Europe Median</div>
-        <div class="kpi-value">20.9x</div>
+        <div class="kpi-value" data-stat="region-median:tint:Europe:80"></div>
         <div class="kpi-sub">DTEGY, BTGOF, SCMN, TELNY</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">APAC Median</div>
-        <div class="kpi-value">14.3x</div>
+        <div class="kpi-value" data-stat="region-median:tint:APAC:80"></div>
         <div class="kpi-sub">NTT, KDDI, SKM, Singtel, et al.</div>
       </div>
       <div class="kpi-card">
@@ -913,20 +949,20 @@
     <div id="telecom-int-regional" class="view-panel">
       <div class="region-grid">
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count">6 companies</div></div>
-          <div class="region-avg">5.2x</div>
+          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count"><span data-stat="region-count:tint:Americas"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-median:tint:Americas:80"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">AT&T, Verizon, Comcast, BCE, Rogers, América Móvil</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tint-rga-chart"></canvas></div>
         </div>
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌍 Europe</div><div class="region-count">7 companies</div></div>
-          <div class="region-avg">20.9x</div>
+          <div class="region-header"><div class="region-name">🌍 Europe</div><div class="region-count"><span data-stat="region-count:tint:Europe"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-median:tint:Europe:80"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">DTEGY, Vodafone, Telefonica, BT, Orange, Swisscom, Telenor, VEON</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tint-rge-chart"></canvas></div>
         </div>
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌏 Asia-Pacific</div><div class="region-count">7 companies</div></div>
-          <div class="region-avg">14.3x</div>
+          <div class="region-header"><div class="region-name">🌏 Asia-Pacific</div><div class="region-count"><span data-stat="region-count:tint:APAC"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-median:tint:APAC:80"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">NTT, KDDI, SoftBank, SK Telecom, Singtel, Axiata, Telstra, Telkom Indonesia</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tint-rgap-chart"></canvas></div>
         </div>
@@ -980,27 +1016,27 @@
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">Sector Median P/E</div>
-        <div class="kpi-value">16.3x</div>
-        <div class="kpi-sub">9 cos. tracked</div>
+        <div class="kpi-value" data-stat="median:tmob:80"></div>
+        <div class="kpi-sub"><span data-stat="count:tmob"></span> cos. tracked</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Americas Median</div>
-        <div class="kpi-value">15.4x</div>
+        <div class="kpi-value" data-stat="region-median:tmob:Americas:80"></div>
         <div class="kpi-sub">TMUS, TIGO</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">APAC Median</div>
-        <div class="kpi-value">15.2x</div>
+        <div class="kpi-value" data-stat="region-median:tmob:APAC:80"></div>
         <div class="kpi-sub">Airtel, Maxis, Indosat, True, PLDT</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Africa / EM</div>
-        <div class="kpi-value">18.3x</div>
+        <div class="kpi-value" data-stat="region-median:tmob:Africa:80"></div>
         <div class="kpi-sub">MTN Group</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">T-Mobile (TMUS) Fwd</div>
-        <div class="kpi-value">7.9x</div>
+        <div class="kpi-value" data-stat="fwdpe:tmob:TMUS"></div>
         <div class="kpi-sub">5G growth leader, US</div>
       </div>
     </div>
@@ -1026,20 +1062,20 @@
     <div id="telecom-mob-regional" class="view-panel">
       <div class="region-grid">
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count">2 companies</div></div>
-          <div class="region-avg">15.4x</div>
+          <div class="region-header"><div class="region-name">🌎 Americas</div><div class="region-count"><span data-stat="region-count:tmob:Americas"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-median:tmob:Americas:80"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">T-Mobile US, Millicom</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tmob-rga-chart"></canvas></div>
         </div>
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌏 Asia-Pacific / EM</div><div class="region-count">6 companies</div></div>
-          <div class="region-avg">15.2x</div>
+          <div class="region-header"><div class="region-name">🌏 Asia-Pacific / EM</div><div class="region-count"><span data-stat="region-count:tmob:APAC"></span> companies</div></div>
+          <div class="region-avg" data-stat="region-median:tmob:APAC:80"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">Bharti Airtel, Maxis, Turkcell, Indosat, True Corp, PLDT</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tmob-rgap-chart"></canvas></div>
         </div>
         <div class="region-card">
-          <div class="region-header"><div class="region-name">🌍 Africa / EM</div><div class="region-count">1 company</div></div>
-          <div class="region-avg">18.3x</div>
+          <div class="region-header"><div class="region-name">🌍 Africa / EM</div><div class="region-count"><span data-stat="region-count:tmob:Africa"></span> company</div></div>
+          <div class="region-avg" data-stat="region-median:tmob:Africa:80"></div>
           <div style="margin-top:var(--space-2);font-size:var(--text-xs);color:var(--color-text-muted);">MTN Group (South Africa)</div>
           <div style="height:120px;margin-top:var(--space-4);position:relative"><canvas id="tmob-rga2-chart"></canvas></div>
         </div>
@@ -1094,10 +1130,10 @@
     <!-- OVERVIEW panel -->
     <div id="cybersec-overview" class="view-panel active">
       <div class="kpi-grid">
-        <div class="kpi-card"><div class="kpi-label">Sector Median P/E (profitable)</div><div class="kpi-value">31.1x</div><div class="kpi-sub">15 public + 5 private tracked</div></div>
-        <div class="kpi-card"><div class="kpi-label">Americas Median</div><div class="kpi-value">27.4x</div><div class="kpi-sub">FTNT, PANW, OKTA, QLYS, GEN, AKAM, VRSN</div></div>
-        <div class="kpi-card"><div class="kpi-label">Europe / Israel Median</div><div class="kpi-value">14.3x</div><div class="kpi-sub">CHKP (Check Point, Israel)</div></div>
-        <div class="kpi-card"><div class="kpi-label">Loss-making cos.</div><div class="kpi-value" style="color:var(--color-red)">6</div><div class="kpi-sub">CRWD, ZS, S, NET, TENB, CYBR</div></div>
+        <div class="kpi-card"><div class="kpi-label">Sector Median P/E (profitable)</div><div class="kpi-value" data-stat="median:cybersec:150"></div><div class="kpi-sub"><span data-stat="count-public:cybersec"></span> public + <span data-stat="count-private:cybersec"></span> private tracked</div></div>
+        <div class="kpi-card"><div class="kpi-label">Americas Median</div><div class="kpi-value" data-stat="region-median:cybersec:Americas:150"></div><div class="kpi-sub">FTNT, PANW, OKTA, QLYS, GEN, AKAM, VRSN</div></div>
+        <div class="kpi-card"><div class="kpi-label">Europe / Israel Median</div><div class="kpi-value" data-stat="region-median:cybersec:Europe:150"></div><div class="kpi-sub">CHKP (Check Point, Israel)</div></div>
+        <div class="kpi-card"><div class="kpi-label">Loss-making cos.</div><div class="kpi-value" style="color:var(--color-red)" data-stat="lossmaking:cybersec"></div><div class="kpi-sub">CRWD, ZS, S, NET, TENB, CYBR</div></div>
         <div class="kpi-card"><div class="kpi-label">10yr Sector Avg</div><div class="kpi-value">~48x</div><div class="kpi-sub">CHKP proxy (longest history)</div></div>
       </div>
       <div class="chart-grid" style="margin-bottom:var(--space-6)">
@@ -1369,265 +1405,637 @@ const CYBERSEC_DATA = {
   ]
 };
 
-/* ═══════════════════════════════════════════════════════════════════════
-   CHART DEFAULTS
-═══════════════════════════════════════════════════════════════════════ */
-Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--color-text-muted').trim() || '#8b949e';
-Chart.defaults.font.family = "'Inter', sans-serif";
-Chart.defaults.font.size = 11;
+<script>
 
-function getColor(key) {
-  return getComputedStyle(document.documentElement).getPropertyValue(key).trim();
+/* ═══════════════════════════════════════════════════════════════════
+   THEME SYSTEM
+═══════════════════════════════════════════════════════════════════ */
+const MOON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+const SUN_SVG  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+
+const chartRegistry = new Map(); // canvasId -> Chart instance
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
-const C = {
-  accent: '#388bfd', green: '#3fb950', red: '#f85149',
-  yellow: '#d29922', purple: '#a371f7', orange: '#f0883e',
-  muted: '#8b949e', border: '#30363d',
+
+function themeColors() {
+  return {
+    text:     cssVar('--color-text'),
+    muted:    cssVar('--color-text-muted'),
+    faint:    cssVar('--color-text-faint'),
+    border:   cssVar('--color-border'),
+    divider:  cssVar('--color-divider'),
+    surface:  cssVar('--color-surface'),
+    surface2: cssVar('--color-surface-2'),
+    accent:   cssVar('--color-accent'),
+    green:    cssVar('--color-green'),
+    red:      cssVar('--color-red'),
+    yellow:   cssVar('--color-yellow'),
+    purple:   cssVar('--color-purple'),
+    orange:   cssVar('--color-orange'),
+  };
+}
+
+function applyThemeToCharts() {
+  const c = themeColors();
+  Chart.defaults.color = c.muted;
+  chartRegistry.forEach(chart => {
+    const scales = chart.options.scales || {};
+    ['x', 'y'].forEach(axis => {
+      if (!scales[axis]) return;
+      if (scales[axis].grid)  scales[axis].grid.color   = c.divider;
+      if (scales[axis].ticks) scales[axis].ticks.color  = c.muted;
+      if (scales[axis].title) scales[axis].title.color  = c.muted;
+    });
+    const tt = chart.options.plugins && chart.options.plugins.tooltip;
+    if (tt) {
+      tt.backgroundColor = c.surface2;
+      tt.borderColor     = c.border;
+      tt.titleColor      = c.text;
+      tt.bodyColor       = c.text;
+    }
+    const leg = chart.options.plugins && chart.options.plugins.legend;
+    if (leg && leg.labels) leg.labels.color = c.muted;
+    chart.update('none');
+  });
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  try { localStorage.setItem('valuscope-theme', theme); } catch(e) {}
+  const btn = document.querySelector('[data-theme-toggle]');
+  if (btn) {
+    // icon = target (what clicking will switch TO)
+    btn.innerHTML = theme === 'dark' ? SUN_SVG : MOON_SVG;
+    btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+  }
+  applyThemeToCharts();
+}
+
+// Wire toggle button
+document.querySelector('[data-theme-toggle]')?.addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  setTheme(cur === 'dark' ? 'light' : 'dark');
+});
+
+// Sync on OS-level change (in case user hasn't overridden)
+try {
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if (!localStorage.getItem('valuscope-theme')) setTheme(e.matches ? 'dark' : 'light');
+  });
+} catch(e) {}
+
+// Apply now (html already has data-theme from inline pre-paint script)
+applyThemeToCharts();
+const _currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+const _themeBtn = document.querySelector('[data-theme-toggle]');
+if (_themeBtn) {
+  _themeBtn.innerHTML = _currentTheme === 'dark' ? SUN_SVG : MOON_SVG;
+  _themeBtn.setAttribute('aria-label', _currentTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   DATA HELPERS
+═══════════════════════════════════════════════════════════════════ */
+function median(arr) {
+  const v = arr.filter(x => x != null && x > 0).sort((a,b) => a-b);
+  if (!v.length) return null;
+  const m = Math.floor(v.length / 2);
+  return v.length % 2 ? v[m] : (v[m-1] + v[m]) / 2;
+}
+function mean(arr) {
+  const v = arr.filter(x => x != null && x > 0);
+  return v.length ? v.reduce((a,b) => a+b, 0) / v.length : null;
+}
+function fmtPe(v) { return v == null ? '—' : v.toFixed(1) + 'x'; }
+function fmtCount(n) { return n == null ? '—' : String(n); }
+
+const DATASETS = {
+  banks:    BANKS_DATA,
+  fintechs: FINTECHS_DATA,
+  tint:     TINT_DATA,
+  tmob:     TMOB_DATA,
+  cybersec: CYBERSEC_DATA,
 };
+
+function sectorCos(key)           { return (DATASETS[key] || { companies: [] }).companies; }
+function validPe(cos, maxPe)      { return cos.map(c => c.pe).filter(v => v != null && v > 0 && v < (maxPe || 9999)); }
+function regionCos(cos, region)   { return cos.filter(c => c.region === region && c.ticker); }
+
+// ─── populate [data-stat] spans ──────────────────────────────────
+function populateStats() {
+  document.querySelectorAll('[data-stat]').forEach(el => {
+    const spec  = el.dataset.stat;
+    const parts = spec.split(':');
+    const [type, key] = parts;
+    const cos   = sectorCos(key);
+    const maxPe = parts[3] ? +parts[3] : (parts[2] && !isNaN(+parts[2]) && !['Americas','Europe','APAC','Africa'].includes(parts[2]) ? +parts[2] : 9999);
+
+    switch (type) {
+      case 'median': {
+        el.textContent = fmtPe(median(validPe(cos, maxPe)));
+        break;
+      }
+      case 'region-median': {
+        const region = parts[2];
+        const cap    = parts[3] ? +parts[3] : 9999;
+        el.textContent = fmtPe(median(validPe(regionCos(cos, region), cap)));
+        break;
+      }
+      case 'region-mean': {
+        const region = parts[2];
+        const cap    = parts[3] ? +parts[3] : 9999;
+        el.textContent = fmtPe(mean(validPe(regionCos(cos, region), cap)));
+        break;
+      }
+      case 'count': {
+        el.textContent = fmtCount(cos.filter(c => c.ticker).length);
+        break;
+      }
+      case 'count-public': {
+        el.textContent = fmtCount(cos.filter(c => c.ticker).length);
+        break;
+      }
+      case 'count-private': {
+        el.textContent = fmtCount(cos.filter(c => !c.ticker).length);
+        break;
+      }
+      case 'region-count': {
+        const region = parts[2];
+        el.textContent = fmtCount(regionCos(cos, region).length);
+        break;
+      }
+      case 'lossmaking': {
+        el.textContent = fmtCount(cos.filter(c => c.ticker && (c.pe == null || c.pe <= 0)).length);
+        break;
+      }
+      case 'fwdpe': {
+        const ticker = parts[2];
+        const co = cos.find(c => c.ticker === ticker);
+        el.textContent = co && co.fwdPe != null ? fmtPe(co.fwdPe) : '—';
+        break;
+      }
+    }
+  });
+}
+
+// Sector-median over historic year (used by overview trend chart)
+function sectorMedianYear(cos, year, maxPe) {
+  const vals = cos
+    .map(c => c.hist && c.hist[year] != null ? c.hist[year] : null)
+    .filter(v => v != null && v > 0 && v < (maxPe || 9999));
+  return median(vals);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   CHART OPTION BUILDERS (theme-aware)
+═══════════════════════════════════════════════════════════════════ */
 const PALETTE = ['#388bfd','#3fb950','#d29922','#a371f7','#f0883e','#f85149','#58a6ff','#7ee787','#ffa657','#bc8cff'];
 
-function baseLineOpts(title) {
+function baseLineOpts() {
+  const c = themeColors();
   return {
     responsive: true, maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
     plugins: {
-      legend: { display: true, position: 'top', labels: { boxWidth: 10, padding: 12, font: { size: 10 } } },
+      legend: { display: true, position: 'top',
+        labels: { color: c.muted, boxWidth: 10, padding: 12, font: { size: 10 } } },
       tooltip: {
-        backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1,
+        backgroundColor: c.surface2, borderColor: c.border, borderWidth: 1,
+        titleColor: c.text, bodyColor: c.text,
         callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(1)+'x' : 'N/A'}` }
       }
     },
     scales: {
-      x: { grid: { color: '#21262d' }, ticks: { maxRotation: 45, font: { size: 10 } } },
+      x: { grid: { color: c.divider }, ticks: { color: c.muted, maxRotation: 45, font: { size: 10 } } },
       y: {
-        grid: { color: '#21262d' },
-        ticks: { callback: v => v+'x', font: { size: 10 } },
-        title: { display: true, text: 'P/E Ratio', font: { size: 10 } }
+        grid: { color: c.divider },
+        ticks: { color: c.muted, callback: v => v+'x', font: { size: 10 } },
+        title: { display: true, text: 'P/E Ratio', color: c.muted, font: { size: 10 } }
       }
     }
   };
 }
 
 function baseBarOpts() {
+  const c = themeColors();
   return {
     responsive: true, maintainAspectRatio: false, indexAxis: 'y',
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1,
+        backgroundColor: c.surface2, borderColor: c.border, borderWidth: 1,
+        titleColor: c.text, bodyColor: c.text,
         callbacks: { label: ctx => ` ${ctx.parsed.x != null ? ctx.parsed.x.toFixed(1)+'x' : 'N/A'}` }
       }
     },
     scales: {
-      x: { grid: { color: '#21262d' }, ticks: { callback: v => v+'x', font: { size: 10 } } },
-      y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      x: { grid: { color: c.divider }, ticks: { color: c.muted, callback: v => v+'x', font: { size: 10 } } },
+      y: { grid: { display: false }, ticks: { color: c.muted, font: { size: 10 } } }
     }
   };
 }
 
 function buildHistSeries(companies, years) {
   return companies.map((co, i) => ({
-    label: co.ticker,
+    label: co.ticker || co.name,
     data: years.map(y => co.hist[y] ?? null),
     borderColor: PALETTE[i % PALETTE.length],
     backgroundColor: 'transparent',
-    tension: 0.35, pointRadius: 2, borderWidth: 1.8,
-    spanGaps: false
+    tension: 0.35, pointRadius: 2, borderWidth: 1.8, spanGaps: false
   }));
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   CHART BUILDERS
-═══════════════════════════════════════════════════════════════════════ */
-
-// helper: compute 5th-95th percentile cap for a set of values
 function pctileCap(datasets, years, pct) {
   const all = [];
-  datasets.forEach(ds => years.forEach((y,i) => { const v = ds.data[i]; if (v != null && v > 0) all.push(v); }));
+  datasets.forEach(ds => years.forEach((y, i) => {
+    const v = ds.data[i];
+    if (v != null && v > 0) all.push(v);
+  }));
   if (!all.length) return 60;
-  all.sort((a,b)=>a-b);
+  all.sort((a,b) => a-b);
   return all[Math.floor(all.length * pct)] || 60;
 }
 
-// BANKS TREND — all companies with history, clipped y-axis
-(function() {
-  const cos = BANKS_DATA.companies.filter(c => Object.keys(c.hist).length > 1);
-  const datasets = buildHistSeries(cos, YEARS);
-  const cap = Math.ceil(pctileCap(datasets, YEARS, 0.95) / 5) * 5;
-  const opts = baseLineOpts();
-  opts.scales.y.max = cap;
-  opts.scales.y.min = 0;
-  opts.plugins.annotation = {}; // no annotation plugin needed
-  new Chart(document.getElementById('banks-trend-chart'), {
-    type: 'line',
-    data: { labels: YEARS.map(String), datasets },
-    options: opts
-  });
-})();
+function makeChart(id, type, data, options) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const chart = new Chart(el, { type, data, options });
+  chartRegistry.set(id, chart);
+  return chart;
+}
 
-// BANKS CURRENT BAR
-(function() {
-  const cos = BANKS_DATA.companies;
-  const vals = cos.map(c => c.pe);
-  const colors = vals.map(v => v == null ? C.muted : v > 20 ? C.yellow : v > 0 ? C.accent : C.red);
-  new Chart(document.getElementById('banks-bar-chart'), {
-    type: 'bar',
-    data: { labels: cos.map(c => c.ticker), datasets: [{ data: vals, backgroundColor: colors, borderRadius: 4, barThickness: 14 }] },
-    options: { ...baseBarOpts(), indexAxis: 'y' }
-  });
-})();
-
-// BANKS REGION TREND
-(function() {
-  const yrKeys = YEARS5;
-  function regionAvg(region, year) {
-    const vals = BANKS_DATA.companies.filter(c => c.region === region).map(c => c.hist[year]).filter(v => v != null && v > 0 && v < 60);
-    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
-  }
-  new Chart(document.getElementById('banks-region-trend'), {
-    type: 'line',
-    data: {
-      labels: yrKeys.map(String),
-      datasets: [
-        { label:'Americas', data: yrKeys.map(y=>regionAvg('Americas',y)), borderColor:C.accent, backgroundColor:'transparent', tension:0.35, pointRadius:3, borderWidth:2 },
-        { label:'Europe',   data: yrKeys.map(y=>regionAvg('Europe',y)),   borderColor:C.purple, backgroundColor:'transparent', tension:0.35, pointRadius:3, borderWidth:2 },
-        { label:'APAC',     data: yrKeys.map(y=>regionAvg('APAC',y)),     borderColor:C.green,  backgroundColor:'transparent', tension:0.35, pointRadius:3, borderWidth:2 },
-      ]
+function buildMiniBar(canvasId, labels, data) {
+  if (!labels.length) return;
+  const c = themeColors();
+  makeChart(canvasId, 'bar', {
+    labels,
+    datasets: [{ data, backgroundColor: PALETTE, borderRadius: 3, barThickness: 14 }]
+  }, {
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: c.surface2, borderColor: c.border, borderWidth: 1,
+        titleColor: c.text, bodyColor: c.text,
+        callbacks: { label: ctx => ` ${ctx.parsed.x != null ? ctx.parsed.x.toFixed(1)+'x' : 'N/A'}` }
+      }
     },
-    options: baseLineOpts()
-  });
-})();
-
-// BANKS REGION MINI CHARTS
-function miniBar(canvasId, labels, data) {
-  new Chart(document.getElementById(canvasId), {
-    type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: PALETTE, borderRadius: 3, barThickness: 14 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth:1, callbacks:{label:ctx=>` ${ctx.parsed.x!=null?ctx.parsed.x.toFixed(1)+'x':'N/A'}`} } },
-      scales: { x: { grid: { color:'#21262d' }, ticks:{callback:v=>v+'x',font:{size:9}} }, y:{grid:{display:false},ticks:{font:{size:9}}} }
+    scales: {
+      x: { grid: { color: c.divider }, ticks: { color: c.muted, callback: v => v+'x', font: { size: 9 } } },
+      y: { grid: { display: false }, ticks: { color: c.muted, font: { size: 9 } } }
     }
   });
 }
-miniBar('banks-rga-chart', ['JPM','BAC','GS','WFC','C'], [14.84,13.31,16.62,12.56,15.99]);
-miniBar('banks-rge-chart', ['HSBC','DB','BCS','UBS'], [15.09,9.11,10.26,18.10]);
-miniBar('banks-rgap-chart', ['Maybank'], [12.73]);
 
-// FINTECHS TREND — all companies with >=2 data points, clipped axis
-(function() {
-  const yrKeys = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
-  const cos = FINTECHS_DATA.companies.filter(c => {
-    const pts = yrKeys.filter(y => c.hist[y] != null && c.hist[y] > 0).length;
-    return pts >= 2;
+// Build mini bar from ticker list, looking up live P/E from a dataset
+function miniByTickers(canvasId, dataset, specs) {
+  const labels = [], vals = [];
+  specs.forEach(spec => {
+    const ticker      = typeof spec === 'string' ? spec : spec.ticker;
+    const customLabel = typeof spec === 'object' ? (spec.label || ticker) : ticker;
+    const co = dataset.companies.find(c => c.ticker === ticker);
+    if (co && co.pe != null && co.pe > 0) { labels.push(customLabel); vals.push(co.pe); }
   });
+  buildMiniBar(canvasId, labels, vals);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   LAZY CHART INIT
+═══════════════════════════════════════════════════════════════════ */
+const lazyBuilders = new Map(); // "sector:view" -> Array<fn>
+
+function queueChart(sectorId, viewId, fn) {
+  const key = `${sectorId}:${viewId}`;
+  if (!lazyBuilders.has(key)) lazyBuilders.set(key, []);
+  lazyBuilders.get(key).push(fn);
+}
+
+function runCharts(sectorId, viewId) {
+  const key = `${sectorId}:${viewId}`;
+  const fns = lazyBuilders.get(key);
+  if (!fns) return;
+  fns.forEach(fn => { try { fn(); } catch(e) { console.warn('chart init failed', key, e); } });
+  lazyBuilders.delete(key); // run once
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   OVERVIEW CHARTS (eager — visible on load)
+═══════════════════════════════════════════════════════════════════ */
+(function buildOverviewCharts() {
+  const c = themeColors();
+
+  // Sector median bar
+  const SECTOR_DEFS = [
+    { label:'🏦 Banks',           color:'#388bfd', cos: BANKS_DATA.companies,    maxPe:60  },
+    { label:'💳 Fintechs',        color:'#3fb950', cos: FINTECHS_DATA.companies, maxPe:150 },
+    { label:'📡 Telecom Int.',    color:'#d29922', cos: TINT_DATA.companies,     maxPe:80  },
+    { label:'📱 Telecom Mob.',    color:'#a371f7', cos: TMOB_DATA.companies,     maxPe:80  },
+    { label:'🔐 Cybersecurity',   color:'#e05d44', cos: CYBERSEC_DATA.companies, maxPe:150 },
+  ];
+  SECTOR_DEFS.forEach(s => {
+    s.med = median(validPe(s.cos, s.maxPe));
+  });
+
+  makeChart('ov-bar-chart', 'bar', {
+    labels: SECTOR_DEFS.map(s => s.label),
+    datasets: [{ label:'Median P/E (TTM)', data: SECTOR_DEFS.map(s => s.med ? +s.med.toFixed(1) : null),
+      backgroundColor: SECTOR_DEFS.map(s => s.color), borderRadius: 6, barThickness: 60 }]
+  }, {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { backgroundColor: c.surface2, borderColor: c.border, borderWidth: 1,
+        titleColor: c.text, bodyColor: c.text,
+        callbacks: { label: ctx => ` ${ctx.parsed.y.toFixed(1)}x median P/E` } } },
+    scales: {
+      x: { grid: { color: c.divider }, ticks: { color: c.muted, font: { size: 12 } } },
+      y: { grid: { color: c.divider }, ticks: { color: c.muted, callback: v => v+'x', font: { size: 11 } }, min: 0, suggestedMax: 45,
+        title: { display: true, text: 'Median P/E (TTM)', color: c.muted, font: { size: 11 } } }
+    }
+  });
+
+  // Range (min/med/max) floating bar
+  function sStats(cos, maxPe) {
+    const v = validPe(cos, maxPe).sort((a,b) => a-b);
+    if (!v.length) return { min:0, med:0, max:0 };
+    const mid = Math.floor(v.length/2);
+    return { min: v[0], med: +(v.length%2 ? v[mid] : (v[mid-1]+v[mid])/2).toFixed(1), max: v[v.length-1] };
+  }
+  SECTOR_DEFS.forEach(s => { s.stats = sStats(s.cos, s.maxPe); });
+  makeChart('ov-range-chart', 'bar', {
+    labels: SECTOR_DEFS.map(s => s.label),
+    datasets: [
+      { label:'Range (min–max)', data: SECTOR_DEFS.map(s => [s.stats.min, s.stats.max]),
+        backgroundColor: SECTOR_DEFS.map(s => s.color+'40'), borderColor: SECTOR_DEFS.map(s => s.color),
+        borderWidth: 1.5, borderRadius: 4, barThickness: 32 },
+      { label:'Median', data: SECTOR_DEFS.map(s => [s.stats.med-0.3, s.stats.med+0.3]),
+        backgroundColor: SECTOR_DEFS.map(s => s.color), borderColor: 'transparent',
+        borderWidth: 0, barThickness: 32 },
+    ]
+  }, {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, position: 'top', labels: { color: c.muted, boxWidth: 10, font: { size: 10 } } },
+      tooltip: { backgroundColor: c.surface2, borderColor: c.border, borderWidth: 1, titleColor: c.text, bodyColor: c.text,
+        callbacks: { label: ctx => {
+          const s = SECTOR_DEFS[ctx.dataIndex].stats;
+          return ctx.datasetIndex === 0 ? ` Range: ${s.min.toFixed(1)}x – ${s.max.toFixed(1)}x` : ` Median: ${s.med}x`;
+        }}}
+    },
+    scales: {
+      x: { grid: { color: c.divider }, ticks: { color: c.muted, font: { size: 10 } } },
+      y: { grid: { color: c.divider }, ticks: { color: c.muted, callback: v => v+'x', font: { size: 10 } }, min: 0, suggestedMax: 100 }
+    }
+  });
+
+  // Sector median trend 2015-2025
+  const OV_YEARS = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+  makeChart('ov-trend-chart', 'line', {
+    labels: OV_YEARS.map(String),
+    datasets: SECTOR_DEFS.map(s => ({
+      label: s.label, borderColor: s.color, backgroundColor: 'transparent',
+      data: OV_YEARS.map(y => { const m = sectorMedianYear(s.cos, y, s.maxPe); return m ? +m.toFixed(1) : null; }),
+      tension: 0.35, pointRadius: 3, borderWidth: 2
+    }))
+  }, {
+    ...baseLineOpts(),
+    scales: { ...baseLineOpts().scales,
+      y: { ...baseLineOpts().scales.y, min: 0, suggestedMax: 60,
+        title: { display: true, text: 'Median P/E', color: c.muted, font: { size: 10 } } } }
+  });
+
+  // All-company dot plot
+  const SECTOR_X  = { banks:0, fintechs:1, 'telecom-int':2, 'telecom-mob':3, cybersec:4 };
+  const SECTOR_CLR = { banks:'#388bfd', fintechs:'#3fb950', 'telecom-int':'#d29922', 'telecom-mob':'#a371f7', cybersec:'#e05d44' };
+  const CAP = 100;
+  function buildDots(cos, sector) {
+    return cos.filter(c => c.pe != null && c.pe > 0).map(c => ({
+      x: SECTOR_X[sector] + (Math.random()-0.5)*0.4,
+      y: Math.min(c.pe, CAP), label: c.ticker || c.name, actualPe: c.pe, capped: c.pe > CAP
+    }));
+  }
+  const allDots = [
+    ...buildDots(BANKS_DATA.companies,'banks').map(d => ({...d, color: SECTOR_CLR.banks})),
+    ...buildDots(FINTECHS_DATA.companies,'fintechs').map(d => ({...d, color: SECTOR_CLR.fintechs})),
+    ...buildDots(TINT_DATA.companies,'telecom-int').map(d => ({...d, color: SECTOR_CLR['telecom-int']})),
+    ...buildDots(TMOB_DATA.companies,'telecom-mob').map(d => ({...d, color: SECTOR_CLR['telecom-mob']})),
+    ...buildDots(CYBERSEC_DATA.companies,'cybersec').map(d => ({...d, color: SECTOR_CLR.cybersec})),
+  ];
+  makeChart('ov-dot-chart', 'scatter', {
+    datasets: [{ data: allDots, backgroundColor: allDots.map(d => d.color+'cc'), pointRadius: 7, pointHoverRadius: 9 }]
+  }, {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { backgroundColor: c.surface2, borderColor: c.border, borderWidth: 1, titleColor: c.text, bodyColor: c.text,
+        callbacks: { label: ctx => {
+          const d = allDots[ctx.dataIndex];
+          return ` ${d.label}: ${d.capped ? '>'+CAP : d.actualPe.toFixed(1)}x${d.capped?' (capped)':''}`;
+        }}}
+    },
+    scales: {
+      x: { grid: { color: c.divider }, min: -0.6, max: 4.6,
+        ticks: { color: c.muted, callback: v => (['Banks','Fintechs','Telecom Int.','Telecom Mob.','Cybersec.'][Math.round(v)]||''), stepSize: 1, font: { size: 11 } } },
+      y: { grid: { color: c.divider }, ticks: { color: c.muted, callback: v => v+'x', font: { size: 10 } }, min: 0, max: CAP,
+        title: { display: true, text: 'P/E Ratio (TTM) · capped at 100x', color: c.muted, font: { size: 10 } } }
+    }
+  });
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   SECTOR CHART BUILDERS (lazy-registered)
+═══════════════════════════════════════════════════════════════════ */
+
+// ── BANKS ────────────────────────────────────────────────────────
+queueChart('banks', 'overview', () => {
+  const cos = BANKS_DATA.companies.filter(c => Object.keys(c.hist).length > 1);
+  const datasets = buildHistSeries(cos, YEARS);
+  const cap = Math.ceil(pctileCap(datasets, YEARS, 0.95) / 5) * 5;
+  const opts = baseLineOpts(); opts.scales.y.max = cap; opts.scales.y.min = 0;
+  makeChart('banks-trend-chart', 'line', { labels: YEARS.map(String), datasets }, opts);
+
+  const bCos = BANKS_DATA.companies, bVals = bCos.map(c => c.pe);
+  const c = themeColors();
+  const bColors = bVals.map(v => v==null ? c.muted : v>20 ? cssVar('--color-yellow') : v>0 ? cssVar('--color-accent') : cssVar('--color-red'));
+  makeChart('banks-bar-chart', 'bar',
+    { labels: bCos.map(c => c.ticker), datasets: [{ data: bVals, backgroundColor: bColors, borderRadius: 4, barThickness: 14 }] },
+    baseBarOpts());
+
+  const yrKeys = YEARS5;
+  function rAvg(region, year) {
+    const v = BANKS_DATA.companies.filter(c => c.region===region).map(c => c.hist[year]).filter(v => v!=null&&v>0&&v<60);
+    return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null;
+  }
+  makeChart('banks-region-trend', 'line', {
+    labels: yrKeys.map(String),
+    datasets: [
+      { label:'Americas', data: yrKeys.map(y=>rAvg('Americas',y)), borderColor:'#388bfd', backgroundColor:'transparent', tension:0.35, pointRadius:3, borderWidth:2 },
+      { label:'Europe',   data: yrKeys.map(y=>rAvg('Europe',y)),   borderColor:'#a371f7', backgroundColor:'transparent', tension:0.35, pointRadius:3, borderWidth:2 },
+      { label:'APAC',     data: yrKeys.map(y=>rAvg('APAC',y)),     borderColor:'#3fb950', backgroundColor:'transparent', tension:0.35, pointRadius:3, borderWidth:2 },
+    ]
+  }, baseLineOpts());
+});
+
+queueChart('banks', 'regional', () => {
+  miniByTickers('banks-rga-chart',  BANKS_DATA, ['JPM','BAC','GS','WFC','C']);
+  miniByTickers('banks-rge-chart',  BANKS_DATA, ['HSBC','DB','BCS','UBS']);
+  miniByTickers('banks-rgap-chart', BANKS_DATA, ['MLYNF']);
+});
+
+// ── FINTECHS ──────────────────────────────────────────────────────
+queueChart('fintechs', 'overview', () => {
+  const yrKeys = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+  const cos = FINTECHS_DATA.companies.filter(c => yrKeys.filter(y => c.hist[y]!=null&&c.hist[y]>0).length >= 2);
   const datasets = buildHistSeries(cos, yrKeys);
   const cap = Math.ceil(pctileCap(datasets, yrKeys, 0.90) / 10) * 10;
-  const opts = baseLineOpts();
-  opts.scales.y.max = cap;
-  opts.scales.y.min = 0;
-  new Chart(document.getElementById('fin-trend-chart'), {
-    type: 'line',
-    data: { labels: yrKeys.map(String), datasets },
-    options: opts
-  });
-})();
+  const opts = baseLineOpts(); opts.scales.y.max = cap; opts.scales.y.min = 0;
+  makeChart('fin-trend-chart', 'line', { labels: yrKeys.map(String), datasets }, opts);
 
-// FINTECHS BAR — all profitable
-(function() {
-  const profitable = FINTECHS_DATA.companies.filter(c => c.pe != null && c.pe > 0 && c.pe < 150);
-  profitable.sort((a,b) => (b.pe||0)-(a.pe||0));
-  const vals = profitable.map(c=>c.pe);
-  const colors = vals.map(v => v > 80 ? C.orange : v > 50 ? C.yellow : v > 30 ? C.accent : C.green);
-  new Chart(document.getElementById('fin-bar-chart'), {
-    type: 'bar',
-    data: { labels: profitable.map(c=>c.ticker), datasets: [{ data:vals, backgroundColor:colors, borderRadius:4, barThickness:13 }] },
-    options: { ...baseBarOpts(), indexAxis:'y' }
-  });
-})();
+  const profitable = FINTECHS_DATA.companies.filter(c => c.pe!=null&&c.pe>0&&c.pe<150).sort((a,b)=>(b.pe||0)-(a.pe||0));
+  const vals = profitable.map(c => c.pe);
+  const colors = vals.map(v => v>80?'#f0883e':v>50?'#d29922':v>30?'#388bfd':'#3fb950');
+  makeChart('fin-bar-chart', 'bar',
+    { labels: profitable.map(c => c.ticker), datasets: [{ data: vals, backgroundColor: colors, borderRadius: 4, barThickness: 13 }] },
+    baseBarOpts());
+});
 
-// FINTECHS REGION MINIS
-miniBar('fin-rga-chart', ['PYPL','COIN','INTU','FOUR','WEX','RELY'], [9.21,44.80,25.19,44.87,20.72,63.32]);
-miniBar('fin-rge-chart', ['ADYEY','WISE','ETOR','GLBE'], [28.82,29.35,16.74,86.44]);
-miniBar('fin-rgap-chart', ['NU','SE','GRAB'], [26.60,35.87,67.0]);
+queueChart('fintechs', 'regional', () => {
+  miniByTickers('fin-rga-chart',  FINTECHS_DATA, ['PYPL','COIN','INTU','FOUR','WEX','RELY']);
+  miniByTickers('fin-rge-chart',  FINTECHS_DATA, ['ADYEY','WISE.L','ETOR','GLBE']);
+  miniByTickers('fin-rgap-chart', FINTECHS_DATA, ['NU','SE','GRAB']);
+});
 
-// TELECOM INT TREND — all companies with >=2 data points, clipped axis
-(function() {
-  const yrKeys = YEARS_SHORT;
-  const cos = TINT_DATA.companies.filter(c => {
-    const pts = yrKeys.filter(y => c.hist[y] != null && c.hist[y] > 0).length;
-    return pts >= 2;
-  });
-  const datasets = buildHistSeries(cos, yrKeys);
-  const cap = Math.ceil(pctileCap(datasets, yrKeys, 0.92) / 5) * 5;
-  const opts = baseLineOpts();
-  opts.scales.y.max = cap;
-  opts.scales.y.min = 0;
-  new Chart(document.getElementById('tint-trend-chart'), {
-    type: 'line',
-    data: { labels: yrKeys.map(String), datasets },
-    options: opts
-  });
-})();
+// ── TELECOM INTEGRATED ────────────────────────────────────────────
+queueChart('telecom-int', 'overview', () => {
+  const cos = TINT_DATA.companies.filter(c => YEARS_SHORT.filter(y=>c.hist[y]!=null&&c.hist[y]>0).length >= 2);
+  const datasets = buildHistSeries(cos, YEARS_SHORT);
+  const cap = Math.ceil(pctileCap(datasets, YEARS_SHORT, 0.92) / 5) * 5;
+  const opts = baseLineOpts(); opts.scales.y.max = cap; opts.scales.y.min = 0;
+  makeChart('tint-trend-chart', 'line', { labels: YEARS_SHORT.map(String), datasets }, opts);
 
-// TELECOM INT BAR
-(function() {
-  const valid = TINT_DATA.companies.filter(c => c.pe != null && c.pe > 0 && c.pe < 130);
-  valid.sort((a,b)=>(b.pe||0)-(a.pe||0));
+  const valid = TINT_DATA.companies.filter(c=>c.pe!=null&&c.pe>0&&c.pe<130).sort((a,b)=>(b.pe||0)-(a.pe||0));
   const vals = valid.map(c=>c.pe);
-  const colors = vals.map(v => v > 40 ? C.orange : v > 20 ? C.yellow : v > 10 ? C.accent : C.green);
-  new Chart(document.getElementById('tint-bar-chart'), {
-    type:'bar',
-    data: { labels: valid.map(c=>c.ticker), datasets: [{data:vals, backgroundColor:colors, borderRadius:4, barThickness:13}] },
-    options: {...baseBarOpts(), indexAxis:'y'}
-  });
-})();
+  const colors = vals.map(v=>v>40?'#f0883e':v>20?'#d29922':v>10?'#388bfd':'#3fb950');
+  makeChart('tint-bar-chart', 'bar',
+    { labels: valid.map(c=>c.ticker), datasets: [{ data: vals, backgroundColor: colors, borderRadius: 4, barThickness: 13 }] },
+    baseBarOpts());
+});
 
-// TELECOM INT REGION MINIS
-miniBar('tint-rga-chart', ['T','VZ','CMCSA','BCE','RCI','AMX'], [8.80,11.52,5.45,4.93,3.63,16.62]);
-miniBar('tint-rge-chart', ['DTEGY','BTGOF','SCMN','TELNY','VEON'], [14.82,22.31,26.99,20.51,7.26]);
-miniBar('tint-rgap-chart', ['Singtel','Axiata','NTT','KDDI','SoftBank','SKM','Telstra','TLKM'], [13.14,19.68,12.26,14.33,19.92,28.4,26.65,14.18]);
+queueChart('telecom-int', 'regional', () => {
+  miniByTickers('tint-rga-chart',  TINT_DATA, ['T','VZ','CMCSA','BCE','RCI','AMX']);
+  miniByTickers('tint-rge-chart',  TINT_DATA, [
+    {ticker:'DTEGY'},{ticker:'BTGOF'},{ticker:'SCMN.SW',label:'SCMN'},{ticker:'TELNY'},{ticker:'VEON'}]);
+  miniByTickers('tint-rgap-chart', TINT_DATA, [
+    {ticker:'SNGNF',label:'Singtel'},{ticker:'AXXTF',label:'Axiata'},{ticker:'9432.T',label:'NTT'},
+    {ticker:'9433.T',label:'KDDI'},{ticker:'9434.T',label:'SoftBank'},{ticker:'SKM'},{ticker:'TLS.AX',label:'Telstra'},{ticker:'TLKM.JK',label:'TLKM'}]);
+});
 
-// TELECOM MOB TREND — all companies with >=2 data points, clipped axis
-(function() {
+// ── TELECOM MOBILE ────────────────────────────────────────────────
+queueChart('telecom-mob', 'overview', () => {
   const yrKeys = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
-  const cos = TMOB_DATA.companies.filter(c => {
-    const pts = yrKeys.filter(y => c.hist[y] != null && c.hist[y] > 0).length;
-    return pts >= 2;
-  });
+  const cos = TMOB_DATA.companies.filter(c => yrKeys.filter(y=>c.hist[y]!=null&&c.hist[y]>0).length >= 2);
   const datasets = buildHistSeries(cos, yrKeys);
   const cap = Math.ceil(pctileCap(datasets, yrKeys, 0.95) / 5) * 5;
-  const opts = baseLineOpts();
-  opts.scales.y.max = cap;
-  opts.scales.y.min = 0;
-  new Chart(document.getElementById('tmob-trend-chart'), {
-    type:'line',
-    data: { labels: yrKeys.map(String), datasets },
-    options: opts
-  });
-})();
+  const opts = baseLineOpts(); opts.scales.y.max = cap; opts.scales.y.min = 0;
+  makeChart('tmob-trend-chart', 'line', { labels: yrKeys.map(String), datasets }, opts);
 
-// TELECOM MOB BAR
-(function() {
-  const valid = TMOB_DATA.companies.filter(c=>c.pe!=null&&c.pe>0&&c.pe<80);
-  valid.sort((a,b)=>(b.pe||0)-(a.pe||0));
+  const valid = TMOB_DATA.companies.filter(c=>c.pe!=null&&c.pe>0&&c.pe<80).sort((a,b)=>(b.pe||0)-(a.pe||0));
   const vals = valid.map(c=>c.pe);
-  const colors = vals.map(v=>v>40?C.orange:v>25?C.yellow:v>10?C.accent:C.green);
-  new Chart(document.getElementById('tmob-bar-chart'), {
-    type:'bar',
-    data: {labels:valid.map(c=>c.ticker), datasets:[{data:vals, backgroundColor:colors, borderRadius:4, barThickness:14}]},
-    options:{...baseBarOpts(), indexAxis:'y'}
+  const colors = vals.map(v=>v>40?'#f0883e':v>25?'#d29922':v>10?'#388bfd':'#3fb950');
+  makeChart('tmob-bar-chart', 'bar',
+    { labels: valid.map(c=>c.ticker), datasets: [{ data: vals, backgroundColor: colors, borderRadius: 4, barThickness: 14 }] },
+    baseBarOpts());
+});
+
+queueChart('telecom-mob', 'regional', () => {
+  miniByTickers('tmob-rga-chart',  TMOB_DATA, ['TMUS','TIGO']);
+  miniByTickers('tmob-rgap-chart', TMOB_DATA, [
+    {ticker:'BHARTIARTL.NS',label:'Airtel'},{ticker:'6012.KL',label:'Maxis'},
+    {ticker:'TKC',label:'TKC'},{ticker:'ISAT.JK',label:'Indosat'},{ticker:'TRUE.BK',label:'True'},{ticker:'PHI',label:'PLDT'}]);
+  miniByTickers('tmob-rga2-chart', TMOB_DATA, [{ticker:'MTN.JO',label:'MTN'}]);
+});
+
+// ── CYBERSECURITY ─────────────────────────────────────────────────
+queueChart('cybersec', 'overview', () => {
+  const c = themeColors();
+  const yrs = [2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+  const profCos = CYBERSEC_DATA.companies.filter(c => c.ticker && c.pe!=null && c.pe>0);
+  const cyDatasets = profCos.map((co, i) => ({
+    label: co.ticker,
+    borderColor: PALETTE[i % PALETTE.length], backgroundColor: 'transparent',
+    data: yrs.map(y => (co.hist && co.hist[y]!=null && co.hist[y]>0 && co.hist[y]<250) ? co.hist[y] : null),
+    tension: 0.35, pointRadius: 3, borderWidth: 2, spanGaps: false
+  })).filter(ds => ds.data.filter(v=>v!=null).length >= 2);
+  const allVals = cyDatasets.flatMap(ds=>ds.data.filter(v=>v!=null)).sort((a,b)=>a-b);
+  const cap = allVals.length ? Math.ceil(allVals[Math.floor(allVals.length*0.90)] / 10) * 10 : 120;
+  makeChart('cybersec-trend-chart', 'line', { labels: yrs.map(String), datasets: cyDatasets }, {
+    ...baseLineOpts(),
+    scales: { ...baseLineOpts().scales, y: { ...baseLineOpts().scales.y, min:0, max:cap } }
   });
-})();
 
-// TELECOM MOB REGION MINIS
-miniBar('tmob-rga-chart', ['TMUS','TIGO'], [20.28,10.45]);
-miniBar('tmob-rgap-chart', ['Airtel','Maxis','TKC','Indosat','True','PLDT'], [36.39,18.30,14.09,12.0,52.22,9.02]);
-miniBar('tmob-rga2-chart', ['MTN'], [18.29]);
+  const prof = CYBERSEC_DATA.companies.filter(c=>c.pe!=null&&c.pe>0&&c.pe<200);
+  const profColors = prof.map(c=>c.pe>80?'#f0883e':c.pe>40?'#d29922':'#3fb950');
+  makeChart('cybersec-bar-chart', 'bar', {
+    labels: prof.map(c=>c.ticker||c.name.slice(0,8)),
+    datasets: [{ data: prof.map(c=>c.pe), backgroundColor: profColors, borderRadius:4, barThickness:28 }]
+  }, { ...baseBarOpts(), scales: { ...baseBarOpts().scales, x: { ...baseBarOpts().scales.x, min:0, suggestedMax:100 } } });
 
-/* ═══════════════════════════════════════════════════════════════════════
-   TABLE RENDERERS
-═══════════════════════════════════════════════════════════════════════ */
+  const americas = CYBERSEC_DATA.companies.filter(c=>c.region==='Americas'&&c.pe!=null&&c.pe>0&&c.pe<200);
+  const europe   = CYBERSEC_DATA.companies.filter(c=>c.region==='Europe'  &&c.pe!=null&&c.pe>0&&c.pe<200);
+  const rMed = arr => median(arr.map(c=>c.pe));
+  makeChart('cybersec-region-chart', 'bar', {
+    labels: ['Americas','Europe / Israel'],
+    datasets: [{ data: [rMed(americas), rMed(europe)], backgroundColor: ['#388bfd','#3fb950'], borderRadius:6, barThickness:50 }]
+  }, {
+    responsive:true, maintainAspectRatio:false,
+    plugins: { legend:{display:false}, tooltip:{ backgroundColor:themeColors().surface2, borderColor:themeColors().border, borderWidth:1,
+      titleColor:themeColors().text, bodyColor:themeColors().text, callbacks:{label:ctx=>` ${ctx.parsed.y.toFixed(1)}x median`} } },
+    scales: {
+      x:{grid:{color:themeColors().divider},ticks:{color:themeColors().muted,font:{size:11}}},
+      y:{grid:{color:themeColors().divider},ticks:{color:themeColors().muted,callback:v=>v+'x',font:{size:10}},min:0,suggestedMax:50}
+    }
+  });
+});
+
+queueChart('cybersec', 'regional', () => {
+  const am = CYBERSEC_DATA.companies.filter(c=>c.region==='Americas'&&c.pe!=null&&c.pe>0&&c.pe<200);
+  makeChart('cybersec-region-americas', 'bar', {
+    labels: am.map(c=>c.ticker),
+    datasets: [{ data: am.map(c=>c.pe), backgroundColor:'#388bfd', borderRadius:4, barThickness:24 }]
+  }, { ...baseBarOpts(), scales: { ...baseBarOpts().scales, x: { ...baseBarOpts().scales.x, min:0, suggestedMax:100 } } });
+
+  const eu = CYBERSEC_DATA.companies.filter(c=>c.region==='Europe'&&c.pe!=null&&c.pe>0&&c.pe<200);
+  makeChart('cybersec-region-eu', 'bar', {
+    labels: eu.map(c=>c.ticker||c.name),
+    datasets: [{ data: eu.map(c=>c.pe), backgroundColor:'#3fb950', borderRadius:4, barThickness:24 }]
+  }, { ...baseBarOpts(), scales: { ...baseBarOpts().scales, x: { ...baseBarOpts().scales.x, min:0, suggestedMax:30 } } });
+
+  const privates = [{name:'Lacework',val:8.3},{name:'Netskope',val:7.5},{name:'Snyk',val:7.4},{name:'1Password',val:6.8},{name:'Arctic Wolf',val:4.3}];
+  const c = themeColors();
+  makeChart('cybersec-private-chart', 'bar', {
+    labels: privates.map(c=>c.name),
+    datasets: [{ data: privates.map(c=>c.val), backgroundColor:'#e05d44bb', borderRadius:4, barThickness:32 }]
+  }, {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:c.surface2,borderColor:c.border,borderWidth:1,
+      titleColor:c.text,bodyColor:c.text,callbacks:{label:ctx=>` ~$${ctx.parsed.y}B valuation`}}},
+    scales:{x:{grid:{color:c.divider},ticks:{color:c.muted,font:{size:10}}},
+      y:{grid:{color:c.divider},ticks:{color:c.muted,callback:v=>'$'+v+'B',font:{size:10}},min:0,suggestedMax:10,
+        title:{display:true,text:'Last VC Valuation ($B)',color:c.muted,font:{size:10}}}}
+  });
+});
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   TABLE RENDERING + SORT
+═══════════════════════════════════════════════════════════════════ */
+const rowData = new WeakMap(); // tr -> company object
+
 function peClass(v) {
   if (v == null) return 'pe-na';
   if (v < 0) return 'pe-negative';
@@ -1635,10 +2043,7 @@ function peClass(v) {
   if (v > 40) return 'pe-high';
   return 'pe-positive';
 }
-function peDisplay(v) {
-  if (v == null) return '—';
-  return v.toFixed(1) + 'x';
-}
+function peDisplay(v) { return v == null ? '—' : v.toFixed(1) + 'x'; }
 function regionPill(r) {
   const map = { Americas:'pill-americas', Europe:'pill-europe', APAC:'pill-apac', Africa:'pill-africa' };
   return `<span class="pill ${map[r]||'pill-americas'}">${r}</span>`;
@@ -1650,406 +2055,108 @@ function sparkBars(hist) {
   return `<div class="sparkbar-wrap">${vals.map(v=>`<div class="sparkbar" style="height:${Math.max(4,Math.round(v/mx*26))}px"></div>`).join('')}</div>`;
 }
 
-function renderTable(tbodyId, companies) {
+function renderTable(tbodyId, companies, extraCol) {
   const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
   tbody.innerHTML = '';
   companies.forEach(c => {
     const tr = document.createElement('tr');
     tr.dataset.region = c.region;
-    tr.dataset.name = (c.name + ' ' + c.ticker).toLowerCase();
+    tr.dataset.name   = (c.name + ' ' + (c.ticker||'')).toLowerCase();
+    rowData.set(tr, c);
+    const lastCol = extraCol === 'segment'
+      ? `<td style="font-size:10px;color:var(--color-text-muted)">${c.segment||''}</td>`
+      : '';
+    const noteOrSpark = c.notes
+      ? `<span style="font-size:10px;color:var(--color-text-muted)">${c.notes}</span>`
+      : sparkBars(c.hist);
     tr.innerHTML = `
-      <td><div class="td-name">${c.name}</div><div class="td-ticker">${c.ticker}</div></td>
+      <td><div class="td-name">${c.name}</div><div class="td-ticker">${c.ticker||'Private'}</div></td>
       <td class="td-num"><span class="${peClass(c.pe)}">${peDisplay(c.pe)}</span></td>
       <td class="td-num"><span class="${peClass(c.fwdPe)}">${peDisplay(c.fwdPe)}</span></td>
       <td class="td-num" style="color:var(--color-text-muted)">${c.cap||'—'}</td>
       <td class="td-region">${regionPill(c.region)}</td>
-      <td>${c.notes ? `<span style="font-size:10px;color:var(--color-text-muted)">${c.notes}</span>` : sparkBars(c.hist)}</td>
-    `;
+      ${lastCol}
+      <td>${noteOrSpark}</td>`;
     tbody.appendChild(tr);
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   OVERVIEW CHARTS
-═══════════════════════════════════════════════════════════════════════ */
-
-// helper: sector median P/E for a given year
-function sectorMedian(companies, year, maxPe) {
-  const vals = companies
-    .map(c => c.hist && c.hist[year] != null ? c.hist[year] : null)
-    .filter(v => v != null && v > 0 && v < (maxPe || 9999));
-  if (!vals.length) return null;
-  vals.sort((a,b)=>a-b);
-  const mid = Math.floor(vals.length/2);
-  return vals.length % 2 ? vals[mid] : (vals[mid-1]+vals[mid])/2;
-}
-// current pe median
-function currentMedian(companies, maxPe) {
-  const vals = companies.map(c=>c.pe).filter(v=>v!=null&&v>0&&v<(maxPe||9999));
-  if (!vals.length) return null;
-  vals.sort((a,b)=>a-b);
-  const mid=Math.floor(vals.length/2);
-  return vals.length%2?vals[mid]:(vals[mid-1]+vals[mid])/2;
+function parseMktCap(s) {
+  if (!s || s === '—') return -1;
+  const m = s.match(/([\d.]+)\s*([BMK])/i);
+  if (!m) return -1;
+  const n = parseFloat(m[1]);
+  const unit = m[2].toUpperCase();
+  return unit === 'B' ? n : unit === 'M' ? n/1000 : n/1e6;
 }
 
-// OV bar chart — sector median comparison
-(function() {
-  const sectors = [
-    { label:'🏦 Banks', color:'#388bfd', median: currentMedian(BANKS_DATA.companies, 60) },
-    { label:'💳 Fintechs', color:'#3fb950', median: currentMedian(FINTECHS_DATA.companies, 150) },
-    { label:'📡 Telecom Integrated', color:'#d29922', median: currentMedian(TINT_DATA.companies, 80) },
-    { label:'📱 Telecom Mobile', color:'#a371f7', median: currentMedian(TMOB_DATA.companies, 80) },
-    { label:'🔐 Cybersecurity', color:'#e05d44', median: currentMedian(CYBERSEC_DATA.companies, 150) },
+function makeSortable(tableId) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const ths   = table.querySelectorAll('thead th');
+  const tbody = table.querySelector('tbody');
+  let sortCol = -1, sortDir = 1;
+
+  // Accessors: (company) -> comparable value
+  const accessors = [
+    c => c.name.toLowerCase(),                 // 0 Company
+    c => c.pe  != null ? c.pe  : -Infinity,    // 1 P/E TTM
+    c => c.fwdPe != null ? c.fwdPe : -Infinity, // 2 Fwd P/E
+    c => parseMktCap(c.cap),                   // 3 Mkt Cap
+    c => c.region,                             // 4 Region
   ];
-  new Chart(document.getElementById('ov-bar-chart'), {
-    type:'bar',
-    data: {
-      labels: sectors.map(s=>s.label),
-      datasets: [{
-        label:'Median P/E (TTM)',
-        data: sectors.map(s=>s.median ? +s.median.toFixed(1) : null),
-        backgroundColor: sectors.map(s=>s.color),
-        borderRadius: 6, barThickness: 60,
-      }]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins: {
-        legend:{display:false},
-        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1, callbacks:{label:ctx=>` ${ctx.parsed.y.toFixed(1)}x median P/E`}}
-      },
-      scales: {
-        x: {grid:{color:'#21262d'}, ticks:{font:{size:12}}},
-        y: {grid:{color:'#21262d'}, ticks:{callback:v=>v+'x', font:{size:11}}, min:0, suggestedMax:45,
-          title:{display:true, text:'Median P/E (TTM)', font:{size:11}}}
-      }
-    }
-  });
-})();
 
-// OV range chart — min/median/max per sector as floating bars
-(function() {
-  function sectorStats(cos, maxPe) {
-    const vals = cos.map(c=>c.pe).filter(v=>v!=null&&v>0&&v<(maxPe||999));
-    if (!vals.length) return {min:0,med:0,max:0};
-    vals.sort((a,b)=>a-b);
-    const mid=Math.floor(vals.length/2);
-    const med=vals.length%2?vals[mid]:(vals[mid-1]+vals[mid])/2;
-    return {min:vals[0], med:+med.toFixed(1), max:vals[vals.length-1]};
-  }
-  const sectors = [
-    {label:'🏦 Banks', color:'#388bfd', stats: sectorStats(BANKS_DATA.companies,60)},
-    {label:'💳 Fintechs', color:'#3fb950', stats: sectorStats(FINTECHS_DATA.companies,150)},
-    {label:'📡 Telecom Int.', color:'#d29922', stats: sectorStats(TINT_DATA.companies,80)},
-    {label:'📱 Telecom Mob.', color:'#a371f7', stats: sectorStats(TMOB_DATA.companies,80)},
-    {label:'🔐 Cybersec.', color:'#e05d44', stats: sectorStats(CYBERSEC_DATA.companies,150)},
-  ];
-  new Chart(document.getElementById('ov-range-chart'), {
-    type:'bar',
-    data: {
-      labels: sectors.map(s=>s.label),
-      datasets: [
-        { label:'Range (min–max)', data: sectors.map(s=>[s.stats.min, s.stats.max]),
-          backgroundColor: sectors.map(s=>s.color+'40'), borderColor: sectors.map(s=>s.color),
-          borderWidth:1.5, borderRadius:4, barThickness:32 },
-        { label:'Median', data: sectors.map(s=>[s.stats.med-0.3, s.stats.med+0.3]),
-          backgroundColor: sectors.map(s=>s.color), borderColor:'transparent',
-          borderWidth:0, barThickness:32 },
-      ]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins: {
-        legend:{display:true, position:'top', labels:{boxWidth:10, font:{size:10}}},
-        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,
-          callbacks:{label:ctx=>{
-            const s=sectors[ctx.dataIndex].stats;
-            return ctx.datasetIndex===0?` Range: ${s.min.toFixed(1)}x – ${s.max.toFixed(1)}x`:` Median: ${s.med}x`;
-          }}}
-      },
-      scales: {
-        x:{grid:{color:'#21262d'}, ticks:{font:{size:10}}},
-        y:{grid:{color:'#21262d'}, ticks:{callback:v=>v+'x', font:{size:10}}, min:0, suggestedMax:100}
-      }
-    }
-  });
-})();
+  ths.forEach((th, i) => {
+    if (i >= accessors.length) return;          // last col (trend/notes) not sortable
+    th.style.cursor = 'pointer';
+    th.title = 'Click to sort';
+    th.addEventListener('click', () => {
+      if (sortCol === i) sortDir *= -1; else { sortCol = i; sortDir = 1; }
+      ths.forEach(h => { h.classList.remove('sorted'); h.textContent = h.textContent.replace(/ [▲▼]$/, ''); });
+      th.classList.add('sorted');
+      th.textContent += sortDir === 1 ? ' ▲' : ' ▼';
 
-// OV trend chart — sector medians over 2015-2025
-(function() {
-  const yrKeys = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
-  new Chart(document.getElementById('ov-trend-chart'), {
-    type:'line',
-    data: {
-      labels: yrKeys.map(String),
-      datasets: [
-        { label:'🏦 Banks', borderColor:'#388bfd', backgroundColor:'transparent',
-          data: yrKeys.map(y=>{ const m=sectorMedian(BANKS_DATA.companies,y,60); return m?+m.toFixed(1):null; }),
-          tension:0.35, pointRadius:3, borderWidth:2 },
-        { label:'💳 Fintechs', borderColor:'#3fb950', backgroundColor:'transparent',
-          data: yrKeys.map(y=>{ const m=sectorMedian(FINTECHS_DATA.companies,y,150); return m?+m.toFixed(1):null; }),
-          tension:0.35, pointRadius:3, borderWidth:2 },
-        { label:'📡 Telecom Int.', borderColor:'#d29922', backgroundColor:'transparent',
-          data: yrKeys.map(y=>{ const m=sectorMedian(TINT_DATA.companies,y,80); return m?+m.toFixed(1):null; }),
-          tension:0.35, pointRadius:3, borderWidth:2 },
-        { label:'📱 Telecom Mob.', borderColor:'#a371f7', backgroundColor:'transparent',
-          data: yrKeys.map(y=>{ const m=sectorMedian(TMOB_DATA.companies,y,80); return m?+m.toFixed(1):null; }),
-          tension:0.35, pointRadius:3, borderWidth:2 },
-        { label:'🔐 Cybersecurity', borderColor:'#e05d44', backgroundColor:'transparent',
-          data: yrKeys.map(y=>{ const m=sectorMedian(CYBERSEC_DATA.companies,y,150); return m?+m.toFixed(1):null; }),
-          tension:0.35, pointRadius:3, borderWidth:2 },
-      ]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins: {
-        legend:{display:true, position:'top', labels:{boxWidth:10, font:{size:10}}},
-        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,
-          callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(1)+'x':'N/A'}`}}
-      },
-      scales: {
-        x:{grid:{color:'#21262d'}, ticks:{font:{size:10}}},
-        y:{grid:{color:'#21262d'}, ticks:{callback:v=>v+'x', font:{size:10}}, min:0, suggestedMax:60,
-          title:{display:true, text:'Median P/E', font:{size:10}}}
-      }
-    }
-  });
-})();
-
-// OV dot chart — all companies current P/E as scatter
-(function() {
-  const SECTOR_X = {banks:0, fintechs:1, 'telecom-int':2, 'telecom-mob':3, cybersec:4};
-  const SECTOR_COLORS = {banks:'#388bfd', fintechs:'#3fb950', 'telecom-int':'#d29922', 'telecom-mob':'#a371f7', cybersec:'#e05d44'};
-  const CAP = 100;
-  function buildDots(cos, sector) {
-    return cos
-      .filter(c => c.pe != null && c.pe > 0)
-      .map(c => ({
-        x: SECTOR_X[sector] + (Math.random()-0.5)*0.4,
-        y: Math.min(c.pe, CAP),
-        label: c.ticker,
-        actualPe: c.pe,
-        capped: c.pe > CAP
-      }));
-  }
-  const allDots = [
-    ...buildDots(BANKS_DATA.companies,'banks').map(d=>({...d,color:SECTOR_COLORS.banks})),
-    ...buildDots(FINTECHS_DATA.companies,'fintechs').map(d=>({...d,color:SECTOR_COLORS.fintechs})),
-    ...buildDots(TINT_DATA.companies,'telecom-int').map(d=>({...d,color:SECTOR_COLORS['telecom-int']})),
-    ...buildDots(TMOB_DATA.companies,'telecom-mob').map(d=>({...d,color:SECTOR_COLORS['telecom-mob']})),
-    ...buildDots(CYBERSEC_DATA.companies,'cybersec').map(d=>({...d,color:SECTOR_COLORS.cybersec})),
-  ];
-  new Chart(document.getElementById('ov-dot-chart'), {
-    type:'scatter',
-    data: { datasets: [{
-      data: allDots,
-      backgroundColor: allDots.map(d=>d.color+'cc'),
-      pointRadius: 7, pointHoverRadius: 9,
-    }]},
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins: {
-        legend:{display:false},
-        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,
-          callbacks:{label:ctx=>{
-            const d=allDots[ctx.dataIndex];
-            return ` ${d.label}: ${d.capped?'>'+CAP:d.actualPe.toFixed(1)}x${d.capped?' (capped)':''}`;
-          }}}
-      },
-      scales: {
-        x:{
-          grid:{color:'#21262d'},
-          min:-0.6, max:4.6,
-          ticks:{callback:v=>(['Banks','Fintechs','Telecom Int.','Telecom Mob.','Cybersec.'][Math.round(v)]||''), stepSize:1, font:{size:11}}
-        },
-        y:{
-          grid:{color:'#21262d'}, ticks:{callback:v=>v+'x', font:{size:10}},
-          min:0, max:CAP,
-          title:{display:true, text:'P/E Ratio (TTM) · capped at 100x', font:{size:10}}
-        }
-      }
-    }
-  });
-})();
-
-renderTable('banks-tbody', BANKS_DATA.companies);
-renderTable('fin-tbody', FINTECHS_DATA.companies);
-renderTable('tint-tbody', TINT_DATA.companies);
-renderTable('tmob-tbody', TMOB_DATA.companies);
-
-/* ═══════════════════════════════════════════════════════════════════════
-   CYBERSECURITY CHARTS
-═══════════════════════════════════════════════════════════════════════ */
-
-// CYBERSEC TREND — profitable cohort only (loss-making excluded)
-(function() {
-  const TREND_COS = CYBERSEC_DATA.companies.filter(c => c.ticker && c.pe != null && c.pe > 0);
-  const yrs = [2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
-  const colors = ['#388bfd','#3fb950','#e05d44','#d29922','#a371f7','#58a6ff','#ffa657','#7ee787'];
-  const datasets = TREND_COS.map((c,i) => ({
-    label: c.ticker,
-    borderColor: colors[i % colors.length],
-    backgroundColor: 'transparent',
-    data: yrs.map(y => (c.hist && c.hist[y] != null && c.hist[y] > 0 && c.hist[y] < 250) ? c.hist[y] : null),
-    tension: 0.35, pointRadius: 3, borderWidth: 2, spanGaps: false,
-  })).filter(ds => ds.data.filter(v=>v!=null).length >= 2);
-  // percentile cap: 90th of all values
-  const allVals = datasets.flatMap(ds=>ds.data.filter(v=>v!=null)).sort((a,b)=>a-b);
-  const cap = allVals.length ? Math.ceil(allVals[Math.floor(allVals.length*0.90)] / 10) * 10 : 120;
-  new Chart(document.getElementById('cybersec-trend-chart'), {
-    type:'line',
-    data: { labels: yrs.map(String), datasets },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins: {
-        legend:{display:true, position:'top', labels:{boxWidth:10,font:{size:10}}},
-        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,
-          callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(1)+'x':'N/A'}`}}
-      },
-      scales: {
-        x:{grid:{color:'#21262d'}, ticks:{font:{size:10}}},
-        y:{grid:{color:'#21262d'}, ticks:{callback:v=>v+'x',font:{size:10}}, min:0, max:cap,
-          title:{display:true,text:'P/E Ratio (TTM)',font:{size:10}}}
-      }
-    }
-  });
-})();
-
-// CYBERSEC BAR — current P/E snapshot (profitable only)
-(function() {
-  const profitable = CYBERSEC_DATA.companies.filter(c => c.pe != null && c.pe > 0 && c.pe < 200);
-  const colors = profitable.map(c => c.pe > 80 ? '#f0883e' : c.pe > 40 ? '#d29922' : '#3fb950');
-  new Chart(document.getElementById('cybersec-bar-chart'), {
-    type:'bar',
-    data: {
-      labels: profitable.map(c => c.ticker || c.name.slice(0,8)),
-      datasets: [{ label:'P/E (TTM)', data: profitable.map(c=>c.pe), backgroundColor: colors, borderRadius:4, barThickness:28 }]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false, indexAxis:'y',
-      plugins:{legend:{display:false},
-        tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,
-          callbacks:{label:ctx=>` ${ctx.parsed.x.toFixed(1)}x`}}},
-      scales:{
-        x:{grid:{color:'#21262d'},ticks:{callback:v=>v+'x',font:{size:10}},min:0,suggestedMax:100},
-        y:{grid:{display:false},ticks:{font:{size:10}}}
-      }
-    }
-  });
-})();
-
-// CYBERSEC REGION mini — Americas vs Europe
-(function() {
-  const americas = CYBERSEC_DATA.companies.filter(c=>c.region==='Americas'&&c.pe!=null&&c.pe>0&&c.pe<200);
-  const europe = CYBERSEC_DATA.companies.filter(c=>c.region==='Europe'&&c.pe!=null&&c.pe>0&&c.pe<200);
-  const med = arr=>{ if(!arr.length)return null; const s=arr.map(c=>c.pe).sort((a,b)=>a-b); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; };
-  new Chart(document.getElementById('cybersec-region-chart'), {
-    type:'bar',
-    data:{
-      labels:['Americas','Europe / Israel'],
-      datasets:[{label:'Median P/E',data:[med(americas),med(europe)],backgroundColor:['#388bfd','#3fb950'],borderRadius:6,barThickness:50}]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,callbacks:{label:ctx=>` ${ctx.parsed.y.toFixed(1)}x median`}}},
-      scales:{x:{grid:{color:'#21262d'},ticks:{font:{size:11}}},y:{grid:{color:'#21262d'},ticks:{callback:v=>v+'x',font:{size:10}},min:0,suggestedMax:50}}
-    }
-  });
-})();
-
-// CYBERSEC Regional Americas bar
-(function() {
-  const cos = CYBERSEC_DATA.companies.filter(c=>c.region==='Americas'&&c.pe!=null&&c.pe>0&&c.pe<200);
-  new Chart(document.getElementById('cybersec-region-americas'), {
-    type:'bar', data:{labels:cos.map(c=>c.ticker),datasets:[{label:'P/E TTM',data:cos.map(c=>c.pe),backgroundColor:'#388bfd',borderRadius:4,barThickness:24}]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,callbacks:{label:ctx=>` ${ctx.parsed.x.toFixed(1)}x`}}},
-      scales:{x:{grid:{color:'#21262d'},ticks:{callback:v=>v+'x',font:{size:10}},min:0,suggestedMax:100},y:{grid:{display:false},ticks:{font:{size:10}}}}}
-  });
-})();
-
-// CYBERSEC Regional Europe bar
-(function() {
-  const cos = CYBERSEC_DATA.companies.filter(c=>c.region==='Europe'&&c.pe!=null&&c.pe>0&&c.pe<200);
-  new Chart(document.getElementById('cybersec-region-eu'), {
-    type:'bar', data:{labels:cos.map(c=>c.ticker||c.name),datasets:[{label:'P/E TTM',data:cos.map(c=>c.pe),backgroundColor:'#3fb950',borderRadius:4,barThickness:24}]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,callbacks:{label:ctx=>` ${ctx.parsed.x.toFixed(1)}x`}}},
-      scales:{x:{grid:{color:'#21262d'},ticks:{callback:v=>v+'x',font:{size:10}},min:0,suggestedMax:30},y:{grid:{display:false},ticks:{font:{size:10}}}}}
-  });
-})();
-
-// CYBERSEC private companies bar chart (valuation reference)
-(function() {
-  const privates = [
-    {name:'Lacework', val:8.3},
-    {name:'Netskope', val:7.5},
-    {name:'Snyk', val:7.4},
-    {name:'1Password', val:6.8},
-    {name:'Arctic Wolf', val:4.3},
-  ];
-  new Chart(document.getElementById('cybersec-private-chart'), {
-    type:'bar',
-    data:{labels:privates.map(c=>c.name),datasets:[{label:'Valuation ($B)',data:privates.map(c=>c.val),backgroundColor:'#e05d44bb',borderRadius:4,barThickness:32}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',borderColor:'#30363d',borderWidth:1,callbacks:{label:ctx=>` ~$${ctx.parsed.y}B valuation`}}},
-      scales:{x:{grid:{color:'#21262d'},ticks:{font:{size:10}}},y:{grid:{color:'#21262d'},ticks:{callback:v=>'$'+v+'B',font:{size:10}},min:0,suggestedMax:10,title:{display:true,text:'Last VC Valuation ($B)',font:{size:10}}}}}
-  });
-})();
-
-// Cybersec companies table with segment column
-(function(){
-  function renderCybersecTable(companies) {
-    const tbody = document.getElementById('cybersec-tbody');
-    tbody.innerHTML = '';
-    companies.forEach(c => {
-      const tr = document.createElement('tr');
-      tr.dataset.region = c.ticker ? c.region : 'Private';
-      tr.dataset.name = (c.name + ' ' + (c.ticker||'')).toLowerCase();
-      tr.innerHTML = `
-        <td><div class="td-name">${c.name}</div><div class="td-ticker">${c.ticker||'Private'}</div></td>
-        <td class="td-num"><span class="${peClass(c.pe)}">${peDisplay(c.pe)}</span></td>
-        <td class="td-num"><span class="${peClass(c.fwdPe)}">${peDisplay(c.fwdPe)}</span></td>
-        <td class="td-num" style="color:var(--color-text-muted)">${c.cap||'—'}</td>
-        <td class="td-region">${regionPill(c.region)}</td>
-        <td style="font-size:10px;color:var(--color-text-muted)">${c.segment||''}</td>
-        <td>${c.notes ? `<span style="font-size:10px;color:var(--color-text-muted)">${c.notes}</span>` : sparkBars(c.hist)}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-  renderCybersecTable(CYBERSEC_DATA.companies);
-
-  // search
-  document.getElementById('cybersec-search').addEventListener('input', e => {
-    const q = e.target.value.toLowerCase();
-    document.querySelectorAll('#cybersec-tbody tr').forEach(tr=>{tr.style.display=tr.dataset.name.includes(q)?'':'none';});
-  });
-
-  // filter buttons
-  document.querySelectorAll('#cybersec-companies .filter-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      document.querySelectorAll('#cybersec-companies .filter-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      const f=btn.dataset.filter;
-      document.querySelectorAll('#cybersec-tbody tr').forEach(tr=>{
-        tr.style.display=(f==='all'||tr.dataset.region===f)?'':'none';
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort((a, b) => {
+        const ca = rowData.get(a), cb = rowData.get(b);
+        if (!ca || !cb) return 0;
+        const va = accessors[i](ca), vb = accessors[i](cb);
+        if (va === -Infinity) return 1;
+        if (vb === -Infinity) return -1;
+        return (va < vb ? -1 : va > vb ? 1 : 0) * sortDir;
       });
+      rows.forEach(r => tbody.appendChild(r));
     });
   });
-})();
+}
 
-/* ═══════════════════════════════════════════════════════════════════════
+// Render all tables eagerly (fast DOM ops, needed for search/filter)
+renderTable('banks-tbody',  BANKS_DATA.companies);
+renderTable('fin-tbody',    FINTECHS_DATA.companies);
+renderTable('tint-tbody',   TINT_DATA.companies);
+renderTable('tmob-tbody',   TMOB_DATA.companies);
+renderTable('cybersec-tbody', CYBERSEC_DATA.companies, 'segment');
+
+makeSortable('banks-table');
+makeSortable('fin-table');
+makeSortable('tint-table');
+makeSortable('tmob-table');
+
+// Cybersec table has search wired separately below
+
+
+/* ═══════════════════════════════════════════════════════════════════
    SEARCH + FILTER
-═══════════════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════════════ */
 document.querySelectorAll('.search-input').forEach(inp => {
   inp.addEventListener('input', () => {
     const q = inp.value.toLowerCase();
-    const target = inp.dataset.searchTarget;
-    document.querySelectorAll(`#${target} tbody tr`).forEach(tr => {
-      tr.style.display = tr.dataset.name.includes(q) ? '' : 'none';
+    const targetId = inp.dataset.searchTarget || inp.id?.replace('-search','') + '-tbody';
+    const tbody = document.querySelector(targetId ? `#${targetId} tbody, #${targetId}` : null);
+    if (!tbody) return;
+    tbody.querySelectorAll('tr').forEach(tr => {
+      tr.style.display = tr.dataset.name?.includes(q) ? '' : 'none';
     });
   });
 });
@@ -2058,7 +2165,6 @@ document.querySelectorAll('[data-filter-region]').forEach(btn => {
   btn.addEventListener('click', () => {
     const region = btn.dataset.filterRegion;
     const target = btn.dataset.filterTarget;
-    // toggle active
     document.querySelectorAll(`[data-filter-target="${target}"]`).forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll(`#${target} tbody tr`).forEach(tr => {
@@ -2067,123 +2173,99 @@ document.querySelectorAll('[data-filter-region]').forEach(btn => {
   });
 });
 
-/* ═══════════════════════════════════════════════════════════════════════
-   TABS + VIEWS
-═══════════════════════════════════════════════════════════════════════ */
-document.querySelectorAll('.sector-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.sector-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    document.querySelectorAll('.sector-section').forEach(s => s.style.display = 'none');
-    const sec = document.getElementById(tab.dataset.sector + '-section');
-    if (sec) sec.style.display = '';
+// Cybersec search (has its own id-based wiring)
+document.getElementById('cybersec-search')?.addEventListener('input', e => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('#cybersec-tbody tr').forEach(tr => {
+    tr.style.display = tr.dataset.name?.includes(q) ? '' : 'none';
   });
+});
+document.querySelectorAll('#cybersec-companies .filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#cybersec-companies .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const f = btn.dataset.filter;
+    document.querySelectorAll('#cybersec-tbody tr').forEach(tr => {
+      tr.style.display = (f==='all' || tr.dataset.region===f) ? '' : 'none';
+    });
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   TAB + VIEW NAVIGATION  (with lazy chart init + a11y)
+═══════════════════════════════════════════════════════════════════ */
+function getActiveView(sectorId) {
+  const btn = document.querySelector(`[data-target="${sectorId}"].view-btn.active`);
+  return btn ? btn.dataset.view : 'overview';
+}
+
+function activateSector(newSectorId) {
+  // Update tabs
+  document.querySelectorAll('.sector-tab').forEach(t => {
+    const active = t.dataset.sector === newSectorId;
+    t.classList.toggle('active', active);
+    t.setAttribute('aria-selected', String(active));
+  });
+  // Show/hide sections
+  document.querySelectorAll('.sector-section').forEach(s => {
+    s.style.display = s.id === newSectorId + '-section' ? '' : 'none';
+    s.setAttribute('aria-hidden', String(s.id !== newSectorId + '-section'));
+  });
+  // Run lazy charts for this sector's current view
+  runCharts(newSectorId, getActiveView(newSectorId));
+}
+
+function activateView(sectorId, viewId) {
+  // Update view buttons
+  document.querySelectorAll(`[data-target="${sectorId}"].view-btn`).forEach(b => {
+    const active = b.dataset.view === viewId;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', String(active));
+  });
+  // Show/hide panels within this sector
+  document.querySelectorAll(`#${sectorId}-section .view-panel`).forEach(p => {
+    const active = p.id === `${sectorId}-${viewId}`;
+    p.classList.toggle('active', active);
+    p.setAttribute('aria-hidden', String(!active));
+  });
+  // Lazy-build charts for this view
+  runCharts(sectorId, viewId);
+}
+
+document.querySelectorAll('.sector-tab').forEach(tab => {
+  tab.setAttribute('role', 'tab');
+  tab.setAttribute('aria-controls', tab.dataset.sector + '-section');
+  tab.setAttribute('aria-selected', tab.classList.contains('active') ? 'true' : 'false');
+  tab.setAttribute('type', 'button');
+  tab.addEventListener('click', () => activateSector(tab.dataset.sector));
+});
+
+document.querySelectorAll('.sector-section').forEach(sec => {
+  sec.setAttribute('role', 'tabpanel');
+  sec.setAttribute('aria-hidden', sec.style.display === 'none' ? 'true' : 'false');
 });
 
 document.querySelectorAll('.view-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const target = btn.dataset.target;
-    const view = btn.dataset.view;
-    document.querySelectorAll(`[data-target="${target}"].view-btn`).forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll(`#${target}-section .view-panel`).forEach(p => p.classList.remove('active'));
-    const panel = document.getElementById(`${target}-${view}`);
-    if (panel) panel.classList.add('active');
-  });
+  btn.setAttribute('role', 'tab');
+  btn.setAttribute('type', 'button');
+  btn.setAttribute('aria-selected', btn.classList.contains('active') ? 'true' : 'false');
+  btn.addEventListener('click', () => activateView(btn.dataset.target, btn.dataset.view));
 });
 
-/* ═══════════════════════════════════════════════════════════════════════
-   THEME TOGGLE
-═══════════════════════════════════════════════════════════════════════ */
-(function() {
-  const btn = document.querySelector('[data-theme-toggle]');
-  const html = document.documentElement;
-  let theme = 'light';
-  html.setAttribute('data-theme', theme);
-  btn && btn.addEventListener('click', () => {
-    theme = theme === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', theme);
-    btn.innerHTML = theme === 'dark'
-      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
-      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
-    // Update chart colors after theme change
-    Chart.defaults.color = theme === 'dark' ? '#8b949e' : '#57606a';
-    Chart.instances && Object.values(Chart.instances).forEach(ch => ch.update());
-  });
-})();
+// Make all remaining buttons type=button
+document.querySelectorAll('button:not([type])').forEach(b => b.setAttribute('type', 'button'));
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════════════════════════════ */
+// Populate computed KPI stats from data
+populateStats();
+
+// Eager init: overview-section charts (already built above)
+// The initially visible overview-section has no lazy charts to run.
+// Run the default active sector tab's default view on first load.
+// (Overview cross-sector = no sector tab active beyond overview; banks tab not yet clicked)
+
 </script>
-<script data-pplx-inline-edit>
-(function(){
-  if(window===window.top)return;
-  function inlineAll(orig,clone){
-    if(orig.nodeType!==1)return;
-    try{
-      var cs=getComputedStyle(orig);
-      var t='';
-      for(var i=0;i<cs.length;i++){t+=cs[i]+':'+cs.getPropertyValue(cs[i])+';';}
-      clone.style.cssText=t;
-    }catch(e){}
-    var oc=orig.children,cc=clone.children;
-    for(var j=0;j<oc.length&&j<cc.length;j++){inlineAll(oc[j],cc[j]);}
-  }
-  function stripExternal(clone){
-    var imgs=clone.querySelectorAll('img');
-    for(var i=0;i<imgs.length;i++){
-      var s=imgs[i].getAttribute('src');
-      if(s&&!s.startsWith('data:'))imgs[i].removeAttribute('src');
-    }
-    var all=clone.querySelectorAll('*');
-    for(var i=0;i<all.length;i++){
-      var st=all[i].style.cssText;
-      if(st&&st.indexOf('url(')>=0){
-        all[i].style.cssText=st.replace(/url\(["']?(?!data:)[^)"']*["']?\)/gi,'none');
-      }
-    }
-  }
-  var scrollRaf=0;
-  function emitScroll(){
-    scrollRaf=0;
-    var x=window.scrollX||window.pageXOffset||0;
-    var y=window.scrollY||window.pageYOffset||0;
-    window.parent.postMessage({type:'INLINE_EDIT_SCROLL',scrollX:x,scrollY:y},'*');
-  }
-  window.addEventListener('scroll',function(){
-    if(scrollRaf)return;
-    scrollRaf=requestAnimationFrame(emitScroll);
-  },{passive:true,capture:true});
-  emitScroll();
-  window.addEventListener('message',function(e){
-    if(!e.data||e.data.type!=='INLINE_EDIT_CAPTURE_REQUEST')return;
-    var scrollX=window.scrollX||window.pageXOffset||0;
-    var scrollY=window.scrollY||window.pageYOffset||0;
-    var w=window.innerWidth,h=window.innerHeight;
-    try{
-      var clone=document.documentElement.cloneNode(true);
-      var rm=clone.querySelectorAll('script,link[rel="stylesheet"],style');
-      for(var i=0;i<rm.length;i++){rm[i].remove();}
-      inlineAll(document.documentElement,clone);
-      stripExternal(clone);
-      var html=new XMLSerializer().serializeToString(clone);
-      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'
-        +'<foreignObject width="100%" height="100%">'
-        +'<div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px;overflow:hidden">'
-        +'<div style="transform:translate(-'+scrollX+'px,-'+scrollY+'px);transform-origin:top left">'
-        +html+'</div></div></foreignObject></svg>';
-      var svgUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
-      var img=new Image();
-      img.onload=function(){
-        var c=document.createElement('canvas');c.width=w;c.height=h;
-        c.getContext('2d').drawImage(img,0,0);
-        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:c.toDataURL('image/png'),scrollX:scrollX,scrollY:scrollY},'*');
-      };
-      img.onerror=function(){
-        window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
-      };
-      img.src=svgUrl;
-    }catch(err){
-      window.parent.postMessage({type:'INLINE_EDIT_SCREENSHOT_RESULT',dataUrl:null,scrollX:scrollX,scrollY:scrollY},'*');
-    }
-  });
-})();
-</script></body>
+</body>
 </html>
